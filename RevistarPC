@@ -1,0 +1,20 @@
+-- Coloque este script em um LocalScript dentro de StarterPlayerScripts ou StarterGui
+
+local UserInputService = game:GetService("UserInputService")
+local TextChatService = game:GetService("TextChatService")
+
+local function onTKeyPress(input, gameProcessed)
+    if gameProcessed then return end -- Evita ação se o jogo já processou o input (ex: chat aberto)
+    
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == Enum.KeyCode.T then
+            -- Envia a mensagem para o chat
+            local channel = TextChatService.TextChannels:FindFirstChild("RBXSystem")
+            if channel then
+                channel:SendAsync("/revistar morto")
+            end
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(onTKeyPress)
