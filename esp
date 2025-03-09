@@ -1,0 +1,84 @@
+-- Coloque este script como um LocalScript em StarterPlayer/StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local COR = Color3.fromRGB(170, 0, 255) -- Cor roxa
+local LARGURA = 0.3 -- Largura da linha
+
+local function criarConexao(origem, destino)
+    local attachment0 = Instance.new("Attachment")
+    attachment0.Parent = origem
+    
+    local attachment1 = Instance.new("Attachment")
+    attachment1.Parent = destino
+    
+    local beam = Instance.new("Beam")
+    beam.Color = ColorSequence.new(COR)
+    beam.Width0 = LARGURA
+    beam.Width1 = LARGURA
+    beam.Attachment0 = attachment0
+    beam.Attachment1 = attachment1
+    beam.Parent = origem
+    
+    return {
+        Beam = beam,
+        Attachments = {attachment0, attachment1}
+    }
+end
+
+local function iniciarConexoes(jogadorLocal)
+    local conexoes = {}
+    local beams = {}
+    
+    local function atualizarConexoes()
+        if not jogadorLocal.Character then return end
+        local raizLocal = jogadorLocal.Character:FindFirstChild("HumanoidRootPart")
+        if not raizLocal then return end
+        
+        -- Conectar a todos os jogadores
+        for _, outroJogador in ipairs(Players:GetPlayers()) do
+            if outroJogador ~= jogadorLocal and outroJogador.Character then
+                local raizAlvo = outroJogador.Character:FindFirstChild("HumanoidRootPart")
+                
+                if raizAlvo and not beams[outroJogador] then
+                    -- Criar nova conexão
+                    beams[outroJogador] = criarConexao(raizLocal, raizAlvo)
+                elseif not raizAlvo and beams[outroJogador] then
+                    -- Remover conexão se o alvo perder o HRP
+                    beams[outroJogador].Beam:Destroy()
+                    for _, attachment in ipairs(beams[outroJogador].Attachments) do
+                        attachment:Destroy()
+                    end
+                    beams[outroJogador] = nil
+                end
+            end
+        end
+    end
+    
+    -- Atualizar conexões continuamente
+    table.insert(conexoes, RunService.Heartbeat:Connect(atualizarConexoes))
+    
+    -- Limpar quando o jogador sair
+    table.insert(conexoes, jogadorLocal.CharacterRemoving:Connect(function()
+        for _, beamData in pairs(beams) do
+            beamData.Beam:Destroy()
+            for _, attachment in ipairs(beamData.Attachments) do
+                attachment:Destroy()
+            end
+        end
+        table.clear(beams)
+    end))
+end
+
+-- Iniciar quando o jogador entrar
+Players.PlayerAdded:Connect(function(jogador)
+    if jogador == Players.LocalPlayer then
+        iniciarConexoes(jogador)
+    end
+end)
+
+-- Caso já esteja no jogo
+if Players.LocalPlayer then
+    iniciarConexoes(Players.LocalPlayer)
+end
