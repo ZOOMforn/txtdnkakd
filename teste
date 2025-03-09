@@ -4,16 +4,16 @@
 -- Instances:
 
 local ScreenGui = Instance.new("ScreenGui")
-local APP = Instance.new("Frame")
+local MeuFrame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
-local Frame = Instance.new("Frame")
+local Frame1 = Instance.new("Frame")
 local AimbotButton = Instance.new("TextButton")
 local UICorner_2 = Instance.new("UICorner")
 local TextLabel = Instance.new("TextLabel")
 local UICorner_3 = Instance.new("UICorner")
 local Close = Instance.new("TextButton")
 local UICorner_4 = Instance.new("UICorner")
-local Frame_2 = Instance.new("Frame")
+local Frame2 = Instance.new("Frame")
 local Open = Instance.new("TextButton")
 local UICorner_5 = Instance.new("UICorner")
 
@@ -21,26 +21,26 @@ local UICorner_5 = Instance.new("UICorner")
 
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-APP.Name = "APP"
-APP.Parent = ScreenGui
-APP.BackgroundColor3 = Color3.fromRGB(121, 0, 181)
-APP.BorderColor3 = Color3.fromRGB(0, 0, 0)
-APP.BorderSizePixel = 0
-APP.Position = UDim2.new(0.376294583, 0, 0.237603307, 0)
-APP.Size = UDim2.new(0, 214, 0, 253)
-APP.Visible = false
+MeuFrame.Name = "MeuFrame"
+MeuFrame.Parent = ScreenGui
+MeuFrame.BackgroundColor3 = Color3.fromRGB(121, 0, 181)
+MeuFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+MeuFrame.BorderSizePixel = 0
+MeuFrame.Position = UDim2.new(0.376294583, 0, 0.237603307, 0)
+MeuFrame.Size = UDim2.new(0, 214, 0, 253)
 
-UICorner.Parent = APP
+UICorner.Parent = MeuFrame
 
-Frame.Parent = APP
-Frame.BackgroundColor3 = Color3.fromRGB(85, 0, 127)
-Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Frame.BorderSizePixel = 0
-Frame.Position = UDim2.new(0.471350551, 0, 0.103216, 0)
-Frame.Size = UDim2.new(0, 12, 0, 226)
+Frame1.Name = "Frame1"
+Frame1.Parent = MeuFrame
+Frame1.BackgroundColor3 = Color3.fromRGB(85, 0, 127)
+Frame1.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Frame1.BorderSizePixel = 0
+Frame1.Position = UDim2.new(0.471350551, 0, 0.103216, 0)
+Frame1.Size = UDim2.new(0, 12, 0, 226)
 
 AimbotButton.Name = "AimbotButton"
-AimbotButton.Parent = APP
+AimbotButton.Parent = MeuFrame
 AimbotButton.BackgroundColor3 = Color3.fromRGB(121, 0, 180)
 AimbotButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
 AimbotButton.BorderSizePixel = 0
@@ -53,9 +53,10 @@ AimbotButton.TextSize = 14.000
 AimbotButton.MouseButton1Up:Connect(function()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/ZOOMforn/Haskis/refs/heads/main/%23%23%23%23%23jd"))()
 end)
+
 UICorner_2.Parent = AimbotButton
 
-TextLabel.Parent = APP
+TextLabel.Parent = MeuFrame
 TextLabel.BackgroundColor3 = Color3.fromRGB(85, 0, 127)
 TextLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
 TextLabel.BorderSizePixel = 0
@@ -69,7 +70,7 @@ TextLabel.TextSize = 14.000
 UICorner_3.Parent = TextLabel
 
 Close.Name = "Close"
-Close.Parent = APP
+Close.Parent = MeuFrame
 Close.BackgroundColor3 = Color3.fromRGB(85, 0, 127)
 Close.BorderColor3 = Color3.fromRGB(0, 0, 0)
 Close.BorderSizePixel = 0
@@ -82,12 +83,13 @@ Close.TextSize = 14.000
 
 UICorner_4.Parent = Close
 
-Frame_2.Parent = APP
-Frame_2.BackgroundColor3 = Color3.fromRGB(85, 0, 127)
-Frame_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Frame_2.BorderSizePixel = 0
-Frame_2.Position = UDim2.new(-0.00061206281, 0, 0.229698211, 0)
-Frame_2.Size = UDim2.new(0, 113, 0, 12)
+Frame2.Name = "Frame2"
+Frame2.Parent = MeuFrame
+Frame2.BackgroundColor3 = Color3.fromRGB(85, 0, 127)
+Frame2.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Frame2.BorderSizePixel = 0
+Frame2.Position = UDim2.new(-0.00061206281, 0, 0.229698211, 0)
+Frame2.Size = UDim2.new(0, 113, 0, 12)
 
 Open.Name = "Open"
 Open.Parent = ScreenGui
@@ -105,7 +107,37 @@ UICorner_5.Parent = Open
 
 -- Scripts:
 
-local function VIFZHHC_fake_script() -- ScreenGui.LocalScript 
+local function QFGXPCF_fake_script() -- MeuFrame.LocalScript 
+	local script = Instance.new('LocalScript', MeuFrame)
+
+	 
+	local MeuFrame = script.Parent
+	local userInputService = game:GetService("UserInputService")
+	
+	local dragging = false
+	local dragOffset = Vector2.new()
+	
+	MeuFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragOffset = Vector2.new(input.Position.X, input.Position.Y) - adminFrame.AbsolutePosition
+		end
+	end)
+	
+	MeuFrame.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+	
+	userInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			MeuFrame.Position = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
+		end
+	end)
+end
+coroutine.wrap(QFGXPCF_fake_script)()
+local function XPTLUP_fake_script() -- ScreenGui.LocalScript 
 	local script = Instance.new('LocalScript', ScreenGui)
 
 	script.Parent.Open.MouseButton1Click:Connect(function()
@@ -115,5 +147,8 @@ local function VIFZHHC_fake_script() -- ScreenGui.LocalScript
 	script.Parent.APP.Close.MouseButton1Click:Connect(function()
 		script.Parent.APP.Visible = false
 	end)
+	
+	
+	
 end
-coroutine.wrap(VIFZHHC_fake_script)()
+coroutine.wrap(XPTLUP_fake_script)()
