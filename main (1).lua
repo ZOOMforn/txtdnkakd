@@ -61,7 +61,7 @@ Environment.FOVCircle = Drawing.new("Circle")
 --// Criação do botão Toggle no canto superior esquerdo
 
 local Button = Drawing.new("Square")
-Button.Position = Vector2(10, 50)  -- Alterado aqui para descer o botão
+Button.Position = Vector2(10, 70)  -- Alterado aqui para descer o botão
 Button.Size = Vector2(120, 30)
 Button.Color = Color3.fromRGB(128, 0, 128)
 Button.Filled = true
