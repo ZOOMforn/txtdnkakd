@@ -1,771 +1,242 @@
--- Serviços
+-- ═══════════════════════════════════════════════════════
+-- AUTO-PUXAR OTIMIZADO - DELTA EXECUTOR
+-- ═══════════════════════════════════════════════════════
+
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+local RS = game:GetService("ReplicatedStorage")
+local p = Players.LocalPlayer
 
-local LocalPlayer = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+-- ============================================
+-- CONFIGURAÇÃO
+-- ============================================
+local ITENS_PERMITIDOS = {
+    "AK47", "Planta Suja", "Planta Limpa", "Uzi", "PARAFAL",
+    "Faca", "IA2", "G3", "IPhone 14", "Hi Power", "Glock 17",
+    "Tratamento", "AR-15", "Lockpick", "Escudo", "C4",
+    "Plástico Vazio", "Usp"
+}
 
--- Remote
-local RS = ReplicatedStorage:WaitForChild("RemoteNovos")
-local dsada = RS:WaitForChild("bixobrabo")
+local CONFIG = {
+    DELAY_ENTRE_ITENS = 0.0016,          -- SEM DELAY (velocidade máxima)
+    INTERVALO_VERIFICACAO = 0.1,    -- Verificação rápida
+    USAR_DELAYS_RANDOM = false,     -- Sem delays aleatórios
+    MAX_RETENTATIVAS = 2,           -- Tentativas por item
+}
 
-local DETECTION_RADIUS = 5
-local SAFE_POSITION = CFrame.new(0, 50, 0)
-local detectados = {}
-local COOLDOWN = 1
-local lastRemote = 0
+-- ============================================
+-- CACHE E VARIÁVEIS
+-- ============================================
+local ITENS_CACHE = {}
+for _, item in ipairs(ITENS_PERMITIDOS) do
+    ITENS_CACHE[item] = true
+end
 
--- Armas que vamos checar
-local armas = { "Uzi","AK47","PARAFAL","Faca","IA2","G3","Hi Power","Glock 17","AR-15" }
+local executando = false
+local conexoes = {}
 
--- Variáveis do spectate
-local looping = false
-local targetPlayer = nil
-local heartbeatConnection = nil
-local previousCFrame = nil
-
--- Lista de players com armas
-local playersComArmas = {}
-local currentIndex = 0
-
--- GUI do inventário que controla stop
-local stopGui = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("BackpackNova"):WaitForChild("Inventario")
-
--- =======================
--- SISTEMA DE NOCLIP
--- =======================
-local noclipEnabled = false
-local noclipConnections = {}
-
-local function enableNoclip()
-    if noclipEnabled or not LocalPlayer.Character then return end
-    noclipEnabled = true
-    
-    for _, part in pairs(LocalPlayer.Character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-            -- Conecta para novos parts que possam ser adicionados
-            noclipConnections[part] = part:GetPropertyChangedSignal("CanCollide"):Connect(function()
-                if noclipEnabled then
-                    part.CanCollide = false
-                end
-            end)
-        end
+-- ============================================
+-- FUNÇÕES AUXILIARES
+-- ============================================
+local function delaySeguro(tempo)
+    if CONFIG.USAR_DELAYS_RANDOM then
+        local variacao = math.random(-20, 20) / 100
+        tempo = tempo + (tempo * variacao)
     end
-    
-    -- Monitora novos parts adicionados ao character
-    if LocalPlayer.Character then
-        noclipConnections.childAdded = LocalPlayer.Character.ChildAdded:Connect(function(child)
-            if child:IsA("BasePart") and noclipEnabled then
-                child.CanCollide = false
-                noclipConnections[child] = child:GetPropertyChangedSignal("CanCollide"):Connect(function()
-                    if noclipEnabled then
-                        child.CanCollide = false
-                    end
-                end)
-            end
-        end)
-    end
+    task.wait(math.max(0.02, tempo))
 end
 
-local function disableNoclip()
-    if not noclipEnabled or not LocalPlayer.Character then return end
-    noclipEnabled = false
-    
-    -- Desconecta todas as connections
-    for part, connection in pairs(noclipConnections) do
-        if connection then
-            connection:Disconnect()
-        end
-    end
-    noclipConnections = {}
-    
-    -- Restaura colisão
-    for _, part in pairs(LocalPlayer.Character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
-
--- Limpa noclip quando respawnar
-LocalPlayer.CharacterAdded:Connect(function()
-    noclipEnabled = false
-    noclipConnections = {}
-    wait(1)
-    monitorDamage()
-end)
-
--- Teleporte suave melhorado COM NOCLIP
-local function smoothTeleport(targetCFrame, duration)
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = LocalPlayer.Character.HumanoidRootPart
-    local startCFrame = hrp.CFrame
-    
-    -- Ativa noclip antes do teleporte
-    enableNoclip()
-    
-    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
-    
-    tween:Play()
-    
-    -- Desativa noclip após completar o teleporte
-    tween.Completed:Connect(function()
-        wait(0.5) -- Pequeno delay para garantir que chegou na posição
-        disableNoclip()
-    end)
-end
-
--- Teleporte instantâneo COM NOCLIP
-local function instantTeleport(targetCFrame)
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = LocalPlayer.Character.HumanoidRootPart
-    
-    -- Ativa noclip
-    enableNoclip()
-    
-    -- Teleporte instantâneo
-    hrp.CFrame = targetCFrame
-    
-    -- Desativa noclip após um delay
-    spawn(function()
-        wait(0.5)
-        disableNoclip()
-    end)
-end
-
--- Monitorar dano com melhoria
-local function monitorDamage()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        local humanoid = LocalPlayer.Character.Humanoid
-        local lastHealth = humanoid.Health
-        humanoid.HealthChanged:Connect(function(newHealth)
-            if newHealth < lastHealth and newHealth < lastHealth * 0.2 then -- Só teleporta se perder muito HP
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    smoothTeleport(SAFE_POSITION, 0.2)
-                end
-            end
-            lastHealth = newHealth
-        end)
-    end
-end
-
--- Reconectar monitoramento quando respawnar
-LocalPlayer.CharacterAdded:Connect(function()
-    wait(1)
-    monitorDamage()
-end)
-
-if LocalPlayer.Character then
-    monitorDamage()
-end
-
--- Checa SafeZone otimizada
-local function estaEmSafeZone(player)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return false end
-    local hrp = player.Character.HumanoidRootPart
-    local safeZones = workspace:FindFirstChild("SafeZones")
-    if not safeZones then return false end
-    
-    for _, zona in pairs(safeZones:GetChildren()) do
-        if zona:IsA("BasePart") then
-            local size = zona.Size
-            local cf = zona.CFrame
-            local min = (cf.Position - (size/2))
-            local max = (cf.Position + (size/2))
-            local pos = hrp.Position
-            if pos.X >= min.X and pos.X <= max.X and pos.Y >= min.Y and pos.Y <= max.Y and pos.Z >= min.Z and pos.Z <= max.Z then
-                return true
-            end
-        end
-    end
-    return false
-end
-
--- Atualiza lista de players com armas (melhorada)
-local function atualizarPlayersComArmas()
-    playersComArmas = {}
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and not estaEmSafeZone(plr) then
-            local armasDoPlayer = {}
-
-            -- Inv
-            local playerInv = plr:FindFirstChild("Inv")
-            if playerInv then
-                for _, stringValue in pairs(playerInv:GetChildren()) do
-                    if stringValue:IsA("StringValue") then
-                        table.insert(armasDoPlayer, stringValue.Name)
-                    end
-                end
-            end
-
-            -- Backpack
-            local backpack = plr:FindFirstChild("Backpack")
-            if backpack then
-                for _, item in pairs(backpack:GetChildren()) do
-                    if item:IsA("Tool") then
-                        table.insert(armasDoPlayer, item.Name)
-                    end
-                end
-            end
-
-            -- Character
-            if plr.Character then
-                for _, item in pairs(plr.Character:GetChildren()) do
-                    if item:IsA("Tool") then
-                        table.insert(armasDoPlayer, item.Name)
-                    end
-                end
-            end
-
-            -- Filtra apenas armas da lista de interesse
-            local armasFiltradas = {}
-            for _, arma in pairs(armasDoPlayer) do
-                for _, nomeArma in pairs(armas) do
-                    if string.find(arma:lower(), nomeArma:lower()) then
-                        table.insert(armasFiltradas, arma)
-                        break
-                    end
-                end
-            end
-
-            if #armasFiltradas > 0 then
-                table.insert(playersComArmas, {player = plr, armas = armasFiltradas})
-            end
-        end
-    end
-end
-
--- Spectate melhorado COM NOCLIP
-local function startSpectate(player)
-    if heartbeatConnection then heartbeatConnection:Disconnect() end
-    targetPlayer = player
-    looping = true
-    
-    -- Salva posição atual se não foi salva
-    if not previousCFrame and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        previousCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-    end
-
-    heartbeatConnection = RunService.Heartbeat:Connect(function()
-        if not looping or not targetPlayer then return end
-        
-        -- Verifica se inventário está aberto
-        if stopGui.Visible then
-            task.wait(1.5)
-            if stopGui.Visible then -- Dupla verificação
-                looping = false
-                targetPlayer = nil
-                if heartbeatConnection then
-                    heartbeatConnection:Disconnect()
-                    heartbeatConnection = nil
-                end
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and previousCFrame then
-                    smoothTeleport(previousCFrame, 0.3)
-                    previousCFrame = nil
-                end
-                camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-            end
-            return
-        end
-
-        -- Verifica se o player ainda existe
-        if not targetPlayer.Parent or not targetPlayer.Character then
-            return -- Player saiu do jogo
-        end
-
-        local humanoid = targetPlayer.Character:FindFirstChild("Humanoid")
-        local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart") or targetPlayer.Character:FindFirstChild("Torso")
-        local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-
-        if humanoid and targetHRP and myHRP then
-            if humanoid.Health <= 0 then
-                -- Player morto - teleporte suave ACIMA DO TORSO COM NOCLIP
-                local distance = (myHRP.Position - targetHRP.Position).Magnitude
-                if distance > 2 then
-                    -- Teleporta para cima do torso (posiciona acima do centro do torso)
-                    local torso = targetPlayer.Character:FindFirstChild("Torso")
-                    local teleportHeight = 3 -- Altura acima do torso
-                    
-                    local targetPosition
-                    if torso then
-                        -- Se encontrar o torso, usa sua posição como referência
-                        targetPosition = torso.CFrame + Vector3.new(0, teleportHeight, 0)
-                    else
-                        -- Se não encontrar torso, usa o HRP como fallback
-                        targetPosition = targetHRP.CFrame + Vector3.new(0, teleportHeight, 0)
-                    end
-                    
-                    -- Ativa noclip temporariamente para o movimento
-                    enableNoclip()
-                    myHRP.CFrame = myHRP.CFrame:Lerp(targetPosition, 0.3)
-                    
-                    -- Desativa noclip após um tempo
-                    spawn(function()
-                        wait(0.5)
-                        disableNoclip()
-                    end)
-                end
-
-                -- /revistar automático quando próximo
-                if distance <= DETECTION_RADIUS then
-                    if not detectados[targetPlayer] and tick() - lastRemote >= COOLDOWN then
-                        detectados[targetPlayer] = true
-                        dsada:FireServer("/revistar " .. targetPlayer.Name)
-                        lastRemote = tick()
-                    end
-                else
-                    detectados[targetPlayer] = nil
-                end
-            else
-                -- Player vivo - só câmera
-                camera.CameraSubject = humanoid
-                -- Reseta detecção
-                detectados[targetPlayer] = nil
-            end
-        end
-    end)
-end
-
--- Player por nome melhorado
-local function playerPorNome(nome)
-    if not nome or nome == "" then return nil end
-    nome = nome:lower()
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and string.find(plr.Name:lower(), nome) then
-            return plr
-        end
+local function encontrarInventario()
+    for _, gui in pairs(p.PlayerGui:GetChildren()) do
+        local inv = gui:FindFirstChild("Inventario", true)
+        if inv then return inv end
     end
     return nil
 end
 
--- Função para parar spectate com delay
-local function stopSpectate()
-    looping = false
-    targetPlayer = nil
-    if heartbeatConnection then
-        heartbeatConnection:Disconnect()
-        heartbeatConnection = nil
+local function notificar(msg)
+    local notifyClient = RS:FindFirstChild("NotifyClient")
+    if notifyClient then
+        pcall(function() notifyClient:Fire(msg) end)
     end
-    
-    -- Desativa noclip se estiver ativo
-    disableNoclip()
-    
-    -- Delay de 0.75s antes de voltar
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and previousCFrame then
-        spawn(function()
-            wait(0.75) -- Delay de 0.75 segundos
-            smoothTeleport(previousCFrame, 0.3)
-            previousCFrame = nil
-        end)
-    else
-        previousCFrame = nil
-    end
-    
-    camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-    -- Limpa detecções
-    detectados = {}
 end
 
--- =======================
--- GUI MODERNA
--- =======================
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SpectateGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = game:GetService("CoreGui")
+-- ============================================
+-- BUSCA INVENTÁRIO
+-- ============================================
+local Inventario = encontrarInventario()
+local tentativas = 0
 
--- Frame principal com design moderno
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 290) -- Aumentei a altura para novo botão
-mainFrame.Position = UDim2.new(0.5, -100, 0.5, -145)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
-
--- Gradiente de fundo
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
-}
-gradient.Rotation = 45
-gradient.Parent = mainFrame
-
--- Cantos arredondados
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 20)
-mainCorner.Parent = mainFrame
-
--- Borda brilhante
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(120, 0, 255)
-stroke.Thickness = 2
-stroke.Transparency = 0.3
-stroke.Parent = mainFrame
-
--- Header com ícone
-local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 40)
-header.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
-header.BorderSizePixel = 0
-header.Parent = mainFrame
-
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 20)
-headerCorner.Parent = header
-
--- Fix para cantos do header
-local headerFix = Instance.new("Frame")
-headerFix.Size = UDim2.new(1, 0, 0, 20)
-headerFix.Position = UDim2.new(0, 0, 1, -20)
-headerFix.BackgroundColor3 = Color3.fromRGB(120, 0, 255)
-headerFix.BorderSizePixel = 0
-headerFix.Parent = header
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -50, 1, 0)
-title.Position = UDim2.new(0, 10, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Spectate System"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = header
-
--- Botão minimizar
-local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
-minimizeBtn.Position = UDim2.new(1, -30, 0, 7.5)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-minimizeBtn.Text = "−"
-minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 16
-minimizeBtn.BorderSizePixel = 0
-minimizeBtn.Parent = header
-
-local minCorner = Instance.new("UICorner")
-minCorner.CornerRadius = UDim.new(0, 15)
-minCorner.Parent = minimizeBtn
-
--- Container principal
-local container = Instance.new("Frame")
-container.Size = UDim2.new(1, -10, 1, -50)
-container.Position = UDim2.new(0, 5, 0, 45)
-container.BackgroundTransparency = 1
-container.Parent = mainFrame
-
--- Status display
-local statusFrame = Instance.new("Frame")
-statusFrame.Size = UDim2.new(1, 0, 0, 25)
-statusFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-statusFrame.BorderSizePixel = 0
-statusFrame.Parent = container
-
-local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0, 10)
-statusCorner.Parent = statusFrame
-
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -10, 1, 0)
-statusLabel.Position = UDim2.new(0, 5, 0, 0)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Status: Parado"
-statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 11
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Parent = statusFrame
-
--- Input para nome
-local inputFrame = Instance.new("Frame")
-inputFrame.Size = UDim2.new(1, 0, 0, 35)
-inputFrame.Position = UDim2.new(0, 0, 0, 35)
-inputFrame.BackgroundTransparency = 1
-inputFrame.Parent = container
-
-local nameBox = Instance.new("TextBox")
-nameBox.Size = UDim2.new(1, 0, 0, 30)
-nameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-nameBox.PlaceholderText = "Nome do player..."
-nameBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
-nameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-nameBox.Font = Enum.Font.Gotham
-nameBox.TextSize = 12
-nameBox.BorderSizePixel = 0
-nameBox.Parent = inputFrame
-
-local inputCorner = Instance.new("UICorner")
-inputCorner.CornerRadius = UDim.new(0, 10)
-inputCorner.Parent = nameBox
-
--- Container de botões
-local buttonContainer = Instance.new("Frame")
-buttonContainer.Size = UDim2.new(1, 0, 1, -80)
-buttonContainer.Position = UDim2.new(0, 0, 0, 80)
-buttonContainer.BackgroundTransparency = 1
-buttonContainer.Parent = container
-
--- Layout dos botões
-local buttonLayout = Instance.new("UIListLayout")
-buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
-buttonLayout.Padding = UDim.new(0, 5)
-buttonLayout.Parent = buttonContainer
-
--- Função para criar botões modernos
-local function createButton(text, color, icon)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 30)
-    button.BackgroundColor3 = color
-    button.BorderSizePixel = 0
-    button.Font = Enum.Font.GothamSemibold
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 12
-    button.Text = text
-    button.Parent = buttonContainer
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = button
-    
-    -- Efeito hover
-    button.MouseEnter:Connect(function()
-        local tween = TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.new(color.R * 1.2, color.G * 1.2, color.B * 1.2)})
-        tween:Play()
-    end)
-    
-    button.MouseLeave:Connect(function()
-        local tween = TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = color})
-        tween:Play()
-    end)
-    
-    return button
+while not Inventario and tentativas < 50 do
+    Inventario = encontrarInventario()
+    tentativas = tentativas + 1
+    task.wait(0.1)
 end
 
--- Criando os botões
-local spectateButton = createButton("Espectar por Nome", Color3.fromRGB(120, 0, 255), "👀")
-local autoSpectateButton = createButton("Spectate Armas", Color3.fromRGB(255, 100, 0), "🔫")
-local nextButton = createButton("Próximo Player", Color3.fromRGB(0, 170, 255), "⏭️")
-local noclipButton = createButton("Toggle Noclip", Color3.fromRGB(100, 255, 100), "👻")
-local stopButton = createButton("Parar Spectate", Color3.fromRGB(255, 50, 50), "⏹️")
+if not Inventario then
+    warn("[DELTA] ❌ Inventário não encontrado!")
+    return
+end
 
--- =======================
--- Arrastar GUI (melhorado)
--- =======================
-local dragging = false
-local dragInput, mousePos, framePos
+print("[DELTA] ✓ Inventário localizado")
 
-header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        mousePos = input.Position
-        framePos = mainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+local Selected = Inventario:WaitForChild("Selected")
+local remote2 = RS:WaitForChild("Modules"):WaitForChild("InvRemotes"):WaitForChild("InvRequest")
+local remote = RS:WaitForChild("Modules"):WaitForChild("InvRemotes"):WaitForChild("InvRemot")
+
+-- ============================================
+-- FUNÇÕES PRINCIPAIS
+-- ============================================
+local function transferirItem(nome, quantidade)
+    for tentativa = 1, CONFIG.MAX_RETENTATIVAS do
+        local success, result = pcall(function()
+            return remote2:InvokeServer("mudaInv", "2", nome, quantidade)
         end)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - mousePos
-        mainFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-    end
-end)
-
--- Minimizar/Maximizar
-local minimized = false
-minimizeBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    local targetSize = minimized and UDim2.new(0, 200, 0, 40) or UDim2.new(0, 200, 0, 290)
-    local tween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = targetSize})
-    tween:Play()
-    minimizeBtn.Text = minimized and "+" or "−"
-end)
-
--- =======================
--- Funcionalidades dos Botões
--- =======================
-
--- Espectar por nome
-spectateButton.MouseButton1Click:Connect(function()
-    local typedName = nameBox.Text
-    local plr = playerPorNome(typedName)
-    if plr then
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            previousCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-        end
-        startSpectate(plr)
-        statusLabel.Text = "Spectando: " .. plr.Name
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    else
-        statusLabel.Text = "Player não encontrado!"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        wait(2)
-        statusLabel.Text = "Status: Parado"
-        statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    end
-end)
-
--- Spectate Armas
-autoSpectateButton.MouseButton1Click:Connect(function()
-    atualizarPlayersComArmas()
-    if #playersComArmas > 0 then
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            previousCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-        end
-        currentIndex = 1
-        local playerInfo = playersComArmas[currentIndex]
-        startSpectate(playerInfo.player)
-        statusLabel.Text = "Spectando: " .. playerInfo.player.Name
-        statusLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
-    else
-        statusLabel.Text = "Nenhum player com arma!"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        wait(2)
-        statusLabel.Text = "Status: Parado"
-        statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    end
-end)
-
--- Próximo player
-nextButton.MouseButton1Click:Connect(function()
-    if #playersComArmas > 0 then
-        atualizarPlayersComArmas()
-        currentIndex = currentIndex + 1
-        if currentIndex > #playersComArmas then currentIndex = 1 end
         
-        if #playersComArmas > 0 and playersComArmas[currentIndex] then
-            local playerInfo = playersComArmas[currentIndex]
-            startSpectate(playerInfo.player)
-            statusLabel.Text = "Próximo: " .. playerInfo.player.Name
-            statusLabel.TextColor3 = Color3.fromRGB(0, 170, 255)
-        else
-            statusLabel.Text = "Nenhum próximo player!"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if success and result == "deubomkk" then
+            return true
         end
-    else
-        statusLabel.Text = "Inicie o spectate primeiro!"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-    end
-end)
-
--- Toggle Noclip manual
-noclipButton.MouseButton1Click:Connect(function()
-    if noclipEnabled then
-        disableNoclip()
-        noclipButton.Text = "Ativar Noclip"
-        noclipButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Noclip desativado"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-    else
-        enableNoclip()
-        noclipButton.Text = "Desativar Noclip"
-        noclipButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Noclip ativado"
-        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        if tentativa < CONFIG.MAX_RETENTATIVAS then
+            task.wait(0.05)
+        end
     end
     
-    task.delay(1, function()
-        if not looping then
-            statusLabel.Text = "Status: Parado"
-            statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        end
-    end)
-end)
+    return false
+end
 
--- Parar
-stopButton.MouseButton1Click:Connect(function()
-    stopSpectate()
-    statusLabel.Text = "Spectate parado"
-    statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
-    task.delay(1, function()
-        statusLabel.Text = "Status: Parado"
-        statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    end)
-end)
-
--- =======================
--- STOP via Inventário
--- =======================
-local stopGui = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("BackpackNova"):WaitForChild("Inventario")
-
-stopGui:GetPropertyChangedSignal("Visible"):Connect(function()
-    if stopGui.Visible then
-        stopSpectate()
-        statusLabel.Text = "Spectate parado"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
-        task.delay(1, function()
-            statusLabel.Text = "Status: Parado"
-            statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        end)
-    end
-end)
-
--- Tecla T para /revistar manual
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.T then
-        if targetPlayer then
-            dsada:FireServer("/revistar " .. targetPlayer.Name)
-            statusLabel.Text = "Revistando: " .. targetPlayer.Name
-            wait(1)
-            if looping and targetPlayer then
-                statusLabel.Text = "Spectando: " .. targetPlayer.Name
+local function contarSlotsVazios()
+    local conteudo = Inventario:FindFirstChild("MyInv")
+    if not conteudo then return 0 end
+    conteudo = conteudo:FindFirstChild("conteudo")
+    if not conteudo then return 0 end
+    
+    local vazios = 0
+    for _, slot in pairs(conteudo:GetChildren()) do
+        if slot:IsA("TextLabel") and slot.Name:match("Slot") then
+            if not slot.In:FindFirstChildWhichIsA("Frame") then
+                vazios = vazios + 1
             end
         end
     end
-end)
+    return vazios
+end
 
--- Tecla N para toggle noclip rápido
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.N then
-        if noclipEnabled then
-            disableNoclip()
-            statusLabel.Text = "Noclip OFF (N)"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        else
-            enableNoclip()
-            statusLabel.Text = "Noclip ON (N)"
-            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+local function verificarEPuxar()
+    if executando then return end
+    
+    local outroInv = Inventario:FindFirstChild("Outro")
+    if not outroInv or not outroInv.Visible then return end
+    
+    -- Ignora baús
+    local txtLabel = outroInv:FindFirstChild("TXT")
+    if txtLabel then
+        local texto = txtLabel.Text:upper()
+        if texto:find("BAÚ") or texto:find("BAU") then return end
+    end
+    
+    local conteudoOutro = outroInv:FindFirstChild("conteudo")
+    if not conteudoOutro then return end
+    
+    -- Coleta itens
+    local itensParaPuxar = {}
+    for _, slot in pairs(conteudoOutro:GetChildren()) do
+        if slot:IsA("TextLabel") and slot.Name:match("Slot") then
+            local itemFrame = slot.In:FindFirstChildWhichIsA("Frame")
+            if itemFrame and ITENS_CACHE[itemFrame.Name] then
+                local qnt = 1
+                local qntText = itemFrame:FindFirstChild("Qnt")
+                if qntText then
+                    qnt = tonumber(qntText.Text:match("%d+")) or 1
+                end
+                table.insert(itensParaPuxar, {nome = itemFrame.Name, qnt = qnt})
+            end
+        end
+    end
+    
+    if #itensParaPuxar == 0 then return end
+    
+    executando = true
+    
+    -- Verifica espaço
+    local slotsVazios = contarSlotsVazios()
+    if slotsVazios < #itensParaPuxar then
+        notificar("⚠️ Inventário cheio!")
+        executando = false
+        return
+    end
+    
+    -- Puxa itens
+    local sucessos = 0
+    local startTime = tick()
+    
+    for i, item in ipairs(itensParaPuxar) do
+        if not outroInv.Visible then break end
+        
+        if transferirItem(item.nome, item.qnt) then
+            sucessos = sucessos + 1
         end
         
-        -- Volta ao status normal após 1 segundo
-        task.delay(1, function()
-            if looping and targetPlayer then
-                statusLabel.Text = "Spectando: " .. targetPlayer.Name
-                statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-            elseif not looping then
-                statusLabel.Text = "Status: Parado"
-                statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-            end
-        end)
+        if i < #itensParaPuxar then
+            delaySeguro(CONFIG.DELAY_ENTRE_ITENS)
+        end
+    end
+    
+    local tempoTotal = tick() - startTime
+    
+    if sucessos > 0 then
+        notificar(string.format("✓ %d itens (%.1fs)", sucessos, tempoTotal))
+        print(string.format("[DELTA] ✓ Puxou %d itens em %.2fs", sucessos, tempoTotal))
+    end
+    
+    executando = false
+end
+
+-- ============================================
+-- SISTEMA DE LOOP
+-- ============================================
+local loopAtivo = true
+
+task.spawn(function()
+    print("[DELTA] 🔄 Sistema ativado")
+    
+    while loopAtivo do
+        local success, err = pcall(verificarEPuxar)
+        if not success then
+            warn("[DELTA] Erro:", err)
+            executando = false
+        end
+        
+        delaySeguro(CONFIG.INTERVALO_VERIFICACAO)
     end
 end)
 
--- Auto-atualização da lista de players com armas
-spawn(function()
-    while true do
-        if looping and #playersComArmas > 0 then
-            atualizarPlayersComArmas()
-        end
-        wait(5) -- Atualiza a cada 5 segundos
+-- ============================================
+-- EVENTOS
+-- ============================================
+local outroInv = Inventario:WaitForChild("Outro")
+
+conexoes[#conexoes + 1] = outroInv:GetPropertyChangedSignal("Visible"):Connect(function()
+    if outroInv.Visible then
+        task.delay(0.1, verificarEPuxar)
     end
 end)
+
+conexoes[#conexoes + 1] = remote.OnClientEvent:Connect(function(w)
+    if w == "revistUpToDate" then
+        task.spawn(verificarEPuxar)
+    end
+end)
+
+-- Cleanup ao morrer
+conexoes[#conexoes + 1] = p.CharacterRemoving:Connect(function()
+    loopAtivo = false
+    for _, conn in pairs(conexoes) do
+        conn:Disconnect()
+    end
+end)
+
+print("[DELTA] ═══════════════════════════════")
+print("[DELTA] ✓ Sistema carregado")
+print("[DELTA] ⚡ Delay: " .. CONFIG.DELAY_ENTRE_ITENS .. "s")
+print("[DELTA] 🔍 Itens: " .. #ITENS_PERMITIDOS)
+print("[DELTA] ═══════════════════════════════")
