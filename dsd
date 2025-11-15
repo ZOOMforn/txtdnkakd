@@ -1,6 +1,25 @@
+-- ==================== ANTI-DETECÇÃO LAYER ====================
+local function antiDetect()
+    -- Ocultar prints
+    local oldPrint = print
+    local oldWarn = warn
+    _G.print = function() end
+    _G.warn = function() end
+    
+    -- Cache de funções originais
+    local originals = {
+        namecall = getnamecallmethod or function() return "" end,
+        newindex = nil,
+        index = nil
+    }
+    
+    return oldPrint, oldWarn
+end
+
+local realPrint, realWarn = antiDetect()
+
 -- ==================== DELAY INICIAL (CRÍTICO) ====================
 task.wait(3)
-print("🕐 Aguardando inicialização segura...")
 
 -- ==================== SERVIÇOS (CACHE ANTECIPADO) ====================
 local CoreGui = game:GetService("CoreGui")
@@ -35,8 +54,6 @@ local function setupMinimalProtection()
     end
     
     Player.CharacterAdded:Connect(protectChar)
-    
-    print("🛡️ Proteção mínima ativada (sem hooks)")
 end
 
 pcall(setupMinimalProtection)
@@ -181,13 +198,35 @@ else
     InputHandler.CurrentBind = Enum.KeyCode.RightShift
 end
 
--- ==================== CRIAR UI (NOME FIXO) ====================
+-- ==================== CRIAR UI (STEALTH MODE) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "XenoMainUI" -- Nome fixo sem aleatoriedade
+ScreenGui.Name = "XenoMainUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999
 ScreenGui.IgnoreGuiInset = true
+
+-- Proteção contra remoção
+local function protectGui()
+    if not ScreenGui or not ScreenGui.Parent then return end
+    
+    -- Anti-destroy bypass
+    local mt = getrawmetatable(ScreenGui)
+    if mt then
+        local oldNamecall = mt.__namecall
+        setreadonly(mt, false)
+        
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            if self == ScreenGui and (method == "Destroy" or method == "Remove") then
+                return
+            end
+            return oldNamecall(self, ...)
+        end)
+        
+        setreadonly(mt, true)
+    end
+end
 
 -- Injeção super protegida
 local function injectGui()
@@ -201,6 +240,7 @@ local function injectGui()
         end)
     end
     
+    -- Auto-restauração silenciosa
     ScreenGui.AncestryChanged:Connect(function(_, parent)
         if not parent then
             task.wait(0.5)
@@ -209,6 +249,8 @@ local function injectGui()
             end)
         end
     end)
+    
+    pcall(protectGui)
 end
 
 injectGui()
@@ -325,10 +367,6 @@ Blur.ScaleType = Enum.ScaleType.Slice
 Blur.SliceCenter = Rect.new(10, 10, 10, 10)
 Blur.ZIndex = -1
 Blur.Parent = Main
-
-local AspectRatio = Instance.new("UIAspectRatioConstraint")
-AspectRatio.AspectRatio = 1.07
-AspectRatio.Parent = Main
 
 local SizeConstraint = Instance.new("UISizeConstraint")
 SizeConstraint.MinSize = Vector2.new(400, 350)
