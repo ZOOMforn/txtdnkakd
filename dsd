@@ -1,7 +1,5 @@
--
-
 -- ==================== DELAY INICIAL (CRÍTICO) ====================
-task.wait(3) -- Espera o anti-cheat estabilizar
+task.wait(3)
 print("🕐 Aguardando inicialização segura...")
 
 -- ==================== SERVIÇOS (CACHE ANTECIPADO) ====================
@@ -19,15 +17,12 @@ local function setupMinimalProtection()
     if protected then return end
     protected = true
     
-    -- APENAS monitorar character (sem bloquear nada)
     local function protectChar(char)
         if not char then return end
         
-        -- Apenas logar se o character for removido
         char.AncestryChanged:Connect(function(_, parent)
             if not parent then
                 task.wait(0.5)
-                -- Tentar respawn suave
                 if not Player.Character then
                     pcall(function() Player:LoadCharacter() end)
                 end
@@ -54,14 +49,14 @@ end)
 -- ==================== LIMPEZA SILENCIOSA ====================
 pcall(function()
     for _, v in pairs(CoreGui:GetChildren()) do
-        if v.Name:find("Xeno") or v.Name:find("XenoUI") then
+        if v.Name:find("Xeno") or v.Name:find("XenoUI") or v.Name == "XenoMainUI" then
             v:Destroy()
         end
     end
     
     local PlayerGui = Player:WaitForChild("PlayerGui")
     for _, v in pairs(PlayerGui:GetChildren()) do
-        if v.Name:find("Xeno") or v.Name:find("XenoUI") then
+        if v.Name:find("Xeno") or v.Name:find("XenoUI") or v.Name == "XenoMainUI" then
             v:Destroy()
         end
     end
@@ -186,10 +181,9 @@ else
     InputHandler.CurrentBind = Enum.KeyCode.RightShift
 end
 
--- ==================== CRIAR UI (ULTRA STEALTH) ====================
-local randomSuffix = tostring(math.random(100000, 999999))
+-- ==================== CRIAR UI (NOME FIXO) ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SysUI_" .. randomSuffix -- Nome genérico
+ScreenGui.Name = "XenoMainUI" -- Nome fixo sem aleatoriedade
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999
@@ -207,7 +201,6 @@ local function injectGui()
         end)
     end
     
-    -- Auto-restauração
     ScreenGui.AncestryChanged:Connect(function(_, parent)
         if not parent then
             task.wait(0.5)
@@ -319,7 +312,7 @@ Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 Main.BackgroundTransparency = 0.1
 Main.BorderSizePixel = 0
 Main.Active = true
-Main.Visible = false -- Começa invisível
+Main.Visible = false
 Main.Parent = ScreenGui
 
 local Blur = Instance.new("ImageLabel")
@@ -354,7 +347,6 @@ BorderGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 BorderGlow.Parent = Main
 AddColoredElement(BorderGlow, "Strokes")
 
--- Animação de abertura suave
 task.spawn(function()
     task.wait(0.5)
     Main.Visible = true
