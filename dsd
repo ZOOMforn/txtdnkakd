@@ -1,5 +1,5 @@
--- Xeno UI Library V6 - ENHANCED EDITION (Com Config de Aimbot)
--- Melhorias: Input universal, validação, performance otimizada, salvamento completo
+-- Xeno UI Library V6 - KRNL OPTIMIZED EDITION
+-- Otimizado para KRNL: Anti-detecção, performance melhorada, compatibilidade total
 
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
@@ -8,32 +8,82 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
-print("🔄 Iniciando Xeno UI V6 Enhanced Edition...")
+print("🔄 Iniciando Xeno UI V6 KRNL Edition...")
 
--- Validação de ambiente
-local isStudio = RunService:IsStudio()
-local hasFileAccess = pcall(function() return readfile and writefile and isfile end)
+-- ==================== ANTI-DETECÇÃO KRNL ====================
+local function setupAntiDetection()
+    -- Proteger contra detecção de ScreenGui
+    local oldNewIndex = nil
+    oldNewIndex = hookmetamethod(game, "__newindex", newcclosure(function(self, key, value)
+        if key == "Parent" and typeof(self) == "Instance" and self:IsA("ScreenGui") then
+            if value == CoreGui or value == Players.LocalPlayer:WaitForChild("PlayerGui") then
+                -- Permitir silenciosamente
+            end
+        end
+        return oldNewIndex(self, key, value)
+    end))
+    
+    -- Proteção contra loops de detecção
+    local oldNamecall = nil
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        -- Bloquear detecções comuns
+        if method == "Kick" or method == "kick" then
+            return
+        end
+        
+        if method == "FireServer" or method == "InvokeServer" then
+            local remoteName = tostring(self)
+            -- Filtrar remotes de anti-cheat conhecidos
+            if remoteName:lower():find("anticheat") or remoteName:lower():find("detect") then
+                return
+            end
+        end
+        
+        return oldNamecall(self, ...)
+    end))
+    
+    print("✅ Anti-detecção ativado")
+end
 
--- Limpar TODAS as instâncias antigas da UI com segurança
+pcall(setupAntiDetection)
+
+-- ==================== VALIDAÇÃO DE AMBIENTE ====================
+local isKRNL = identifyexecutor and identifyexecutor():lower():find("krnl")
+local hasFileAccess = pcall(function() 
+    return readfile and writefile and isfile and (isKRNL or syn or getgenv().writefile)
+end)
+
+if isKRNL then
+    print("✅ KRNL detectado - Modo otimizado ativado")
+end
+
+-- ==================== LIMPEZA SEGURA ====================
 print("🧹 Verificando UIs duplicadas...")
 local cleanedCount = 0
 
-pcall(function()
-    for _, v in pairs(CoreGui:GetChildren()) do
-        if v.Name == "XenoUI" or v:IsA("ScreenGui") and v:FindFirstChild("MainFrame") then
-            v:Destroy()
-            cleanedCount = cleanedCount + 1
+local function safeCleanup()
+    pcall(function()
+        for _, v in pairs(CoreGui:GetChildren()) do
+            if v.Name == "XenoUI" or (v:IsA("ScreenGui") and v:FindFirstChild("MainFrame")) then
+                v:Destroy()
+                cleanedCount = cleanedCount + 1
+            end
         end
-    end
-    
-    local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-    for _, v in pairs(PlayerGui:GetChildren()) do
-        if v.Name == "XenoUI" or v:IsA("ScreenGui") and v:FindFirstChild("MainFrame") then
-            v:Destroy()
-            cleanedCount = cleanedCount + 1
+        
+        local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+        for _, v in pairs(PlayerGui:GetChildren()) do
+            if v.Name == "XenoUI" or (v:IsA("ScreenGui") and v:FindFirstChild("MainFrame")) then
+                v:Destroy()
+                cleanedCount = cleanedCount + 1
+            end
         end
-    end
-end)
+    end)
+end
+
+safeCleanup()
 
 if cleanedCount > 0 then
     print("✅ Limpou " .. cleanedCount .. " UI(s) antiga(s)")
@@ -41,16 +91,16 @@ end
 
 task.wait(0.2)
 
--- ==================== CONFIG MANAGER APRIMORADO ====================
+-- ==================== CONFIG MANAGER COM PROTEÇÃO ====================
 local ConfigManager = {}
-ConfigManager.ConfigPath = "Lovem_Menu.json"
+ConfigManager.ConfigPath = "Lovem_Menu_KRNL.json"
 ConfigManager.CurrentConfig = {
     Theme = {
         Color = {220, 60, 60},
         Rainbow = false,
         Transparency = 0,
         Font = "FredokaOne",
-		Color_fov = {220, 60, 60}
+        Color_fov = {220, 60, 60}
     },
     Keybind = {
         Type = "KeyCode",
@@ -61,12 +111,13 @@ ConfigManager.CurrentConfig = {
 
 function ConfigManager:SaveConfig()
     if not hasFileAccess then
-        warn("⚠️ File access não disponível (Executor limitado)")
+        warn("⚠️ File access não disponível")
         return false
     end
     
     local success, err = pcall(function()
-        writefile(self.ConfigPath, HttpService:JSONEncode(self.CurrentConfig))
+        local json = HttpService:JSONEncode(self.CurrentConfig)
+        writefile(self.ConfigPath, json)
         print("💾 Config salva: " .. self.ConfigPath)
         return true
     end)
@@ -182,15 +233,23 @@ else
     InputHandler.CurrentBind = Enum.KeyCode.RightShift
 end
 
--- ==================== CRIAR UI ====================
+-- ==================== CRIAR UI PROTEGIDA ====================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "XenoUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999
+
+-- Proteção adicional para KRNL
 pcall(function()
     ScreenGui.Parent = CoreGui
 end)
+
+if not ScreenGui.Parent then
+    pcall(function()
+        ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    end)
+end
 
 -- VARIÁVEIS GLOBAIS
 local ThemeColor = Color3.fromRGB(unpack(ConfigManager.CurrentConfig.Theme.Color))
@@ -225,7 +284,7 @@ local ColoredElements = {
     ActiveToggles = setmetatable({}, {__mode = "v"})
 }
 
--- Cache de Cores
+-- Cache de Cores (otimização KRNL)
 local ColorCache = {}
 local function GetCachedColor(r, g, b)
     local key = r .. "_" .. g .. "_" .. b
@@ -372,7 +431,7 @@ Blur.ZIndex = -1
 Blur.Parent = Main
 
 local AspectRatio = Instance.new("UIAspectRatioConstraint")
-AspectRatio.AspectRatio = 1.07  -- Mantém proporção 580:540
+AspectRatio.AspectRatio = 1.07
 AspectRatio.Parent = Main
 
 local SizeConstraint = Instance.new("UISizeConstraint")
@@ -426,7 +485,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 250, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "CHUPA CU SCRIPT"
+Title.Text = "XENO UI - KRNL EDITION"
 Title.Font = Enum.Font.FredokaOne
 Title.TextSize = 14
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -437,7 +496,7 @@ local Subtitle = Instance.new("TextLabel")
 Subtitle.Size = UDim2.new(0, 200, 0, 12)
 Subtitle.Position = UDim2.new(0, 15, 1, -15)
 Subtitle.BackgroundTransparency = 1
-Subtitle.Text = "Enhanced Edition"
+Subtitle.Text = "Anti-Detection Enabled"
 Subtitle.Font = Enum.Font.FredokaOne
 Subtitle.TextSize = 9
 Subtitle.TextColor3 = ThemeColor
@@ -464,11 +523,9 @@ local minimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        -- Desabilita temporariamente o AspectRatio
         AspectRatio.Enabled = false
         Tween(Main, {Size = UDim2.new(0.45, 0, 0, 40)})
     else
-        -- Reabilita o AspectRatio
         AspectRatio.Enabled = true
         Tween(Main, {Size = UDim2.new(0.45, 0, 0.65, 0)})
     end
@@ -492,6 +549,7 @@ CloseCorner.Parent = CloseBtn
 
 CloseBtn.MouseButton1Click:Connect(function()
     ConfigManager:SaveConfig()
+    CleanupConnections()
     Tween(Main, {Size = UDim2.new(0, 0, 0, 0)})
     task.wait(0.5)
     ScreenGui:Destroy()
