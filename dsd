@@ -429,16 +429,10 @@ local minimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        -- Remover AspectRatio ao invés de desabilitar
-        if AspectRatio and AspectRatio.Parent then
-            AspectRatio.Parent = nil
-        end
+        AspectRatio.Enabled = false
         Tween(Main, {Size = UDim2.new(0.45, 0, 0, 40)})
     else
-        -- Restaurar AspectRatio
-        if AspectRatio then
-            AspectRatio.Parent = Main
-        end
+        AspectRatio.Enabled = true
         Tween(Main, {Size = UDim2.new(0.45, 0, 0.65, 0)})
     end
 end)
@@ -1850,75 +1844,7 @@ local function getTargetBone(character)
 end
 
 ---------------------------------------------------------------------
--- 🔹 GUI
----------------------------------------------------------------------
-
-local function createFovCircle()
-    local oldGui = CoreGui:FindFirstChild("AimbotFOV")
-    if oldGui then oldGui:Destroy() end
-    
-    if connRecenter then connRecenter:Disconnect() connRecenter = nil end
-    if connAimbot then connAimbot:Disconnect() connAimbot = nil end
-    if connTouch then connTouch:Disconnect() connTouch = nil end
-    
-    if screenGui then screenGui:Destroy() screenGui = nil end
-    fovCircle, rootFrame = nil, nil
-
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "AimbotFOV"
-    screenGui.Parent = CoreGui
-    screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = 9999
-
-    rootFrame = Instance.new("Frame")
-    rootFrame.BackgroundTransparency = 1
-    rootFrame.Size = UDim2.fromScale(1, 1)
-    rootFrame.Parent = screenGui
-
-    fovCircle = Instance.new("Frame")
-    fovCircle.Name = "FOVCircle"
-    fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
-    fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-    fovCircle.Position = UDim2.fromScale(0.5, 0.5)
-    fovCircle.BackgroundTransparency = 1
-    fovCircle.Visible = fovVisible and aimbotEnabled
-    fovCircle.Parent = rootFrame
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = fovColor
-    stroke.Thickness = 2
-    stroke.Parent = fovCircle
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = fovCircle
-
-    local aspect = Instance.new("UIAspectRatioConstraint")
-    aspect.AspectRatio = 1
-    aspect.Parent = fovCircle
-
-    local function recenter()
-        if fovCircle and camera then
-            local vp = camera.ViewportSize
-            fovCircle.Position = UDim2.fromOffset(vp.X / 2, vp.Y / 2)
-        end
-    end
-
-    connRecenter = RunService.RenderStepped:Connect(recenter)
-    recenter()
-end
-
-local function updateFovCircle()
-    if fovCircle then
-        fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
-        local stroke = fovCircle:FindFirstChildOfClass("UIStroke")
-        if stroke then stroke.Color = fovColor end
-        fovCircle.Visible = fovVisible and aimbotEnabled
-    end
-end
-
----------------------------------------------------------------------
--- 🔹 Lógica de mira
+-- 🔹 Lógica de mira (DECLARADA ANTES DE SER USADA)
 ---------------------------------------------------------------------
 
 local function getClosestTargetWithinFov()
@@ -1993,6 +1919,74 @@ local function aimbotUpdate(delta)
 end
 
 ---------------------------------------------------------------------
+-- 🔹 GUI
+---------------------------------------------------------------------
+
+local function createFovCircle()
+    local oldGui = CoreGui:FindFirstChild("AimbotFOV")
+    if oldGui then oldGui:Destroy() end
+    
+    if connRecenter then connRecenter:Disconnect() connRecenter = nil end
+    if connAimbot then connAimbot:Disconnect() connAimbot = nil end
+    if connTouch then connTouch:Disconnect() connTouch = nil end
+    
+    if screenGui then screenGui:Destroy() screenGui = nil end
+    fovCircle, rootFrame = nil, nil
+
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AimbotFOV"
+    screenGui.Parent = CoreGui
+    screenGui.IgnoreGuiInset = true
+    screenGui.DisplayOrder = 9999
+
+    rootFrame = Instance.new("Frame")
+    rootFrame.BackgroundTransparency = 1
+    rootFrame.Size = UDim2.fromScale(1, 1)
+    rootFrame.Parent = screenGui
+
+    fovCircle = Instance.new("Frame")
+    fovCircle.Name = "FOVCircle"
+    fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
+    fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    fovCircle.Position = UDim2.fromScale(0.5, 0.5)
+    fovCircle.BackgroundTransparency = 1
+    fovCircle.Visible = fovVisible and aimbotEnabled
+    fovCircle.Parent = rootFrame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = fovColor
+    stroke.Thickness = 2
+    stroke.Parent = fovCircle
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = fovCircle
+
+    local aspect = Instance.new("UIAspectRatioConstraint")
+    aspect.AspectRatio = 1
+    aspect.Parent = fovCircle
+
+    local function recenter()
+        if fovCircle and camera then
+            local vp = camera.ViewportSize
+            fovCircle.Position = UDim2.fromOffset(vp.X / 2, vp.Y / 2)
+        end
+    end
+
+    connRecenter = RunService.RenderStepped:Connect(recenter)
+    recenter()
+end
+
+local function updateFovCircle()
+    if fovCircle then
+        fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
+        local stroke = fovCircle:FindFirstChildOfClass("UIStroke")
+        if stroke then stroke.Color = fovColor end
+        fovCircle.Visible = fovVisible and aimbotEnabled
+    end
+end
+
+---------------------------------------------------------------------
 -- 🔹 CONTROLES MOBILE
 ---------------------------------------------------------------------
 
@@ -2013,18 +2007,38 @@ local function setupMobileControls()
 end
 
 ---------------------------------------------------------------------
--- 🔹 Inicialização e UI
+-- 🔹 Inicialização (DEPOIS de declarar todas as funções)
 ---------------------------------------------------------------------
 
 createFovCircle()
 
-if aimbotEnabled and not connAimbot then
+if aimbotEnabled then
     connAimbot = RunService.RenderStepped:Connect(aimbotUpdate)
 end
 
 if isMobile then
     setupMobileControls()
 end
+
+-- Keybind para PC (botão direito do mouse)
+if isPC then
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            rightMouseHeld = true
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            rightMouseHeld = false
+        end
+    end)
+end
+
+---------------------------------------------------------------------
+-- 🔹 INTERFACE
+---------------------------------------------------------------------
 
 if Tab1 then
     Tab1:AddSection("Legit Aimbot Settings", "left")
