@@ -401,40 +401,12 @@ Subtitle.TextColor3 = ThemeColor
 Subtitle.Parent = TopBar
 AddColoredElement(Subtitle, "TextLabels")
 
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 35, 0, 35)
-MinimizeBtn.Position = UDim2.new(1, -80, 0.5, -17.5)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MinimizeBtn.BorderSizePixel = 0
-MinimizeBtn.Text = "─"
-MinimizeBtn.Font = Enum.Font.FredokaOne
-MinimizeBtn.TextSize = 16
-MinimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MinimizeBtn.AutoButtonColor = false
-MinimizeBtn.Parent = TopBar
-
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 8)
-MinCorner.Parent = MinimizeBtn
-
-local minimized = false
-MinimizeBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        AspectRatio.Enabled = false
-        Tween(Main, {Size = UDim2.new(0.45, 0, 0, 40)})
-    else
-        AspectRatio.Enabled = true
-        Tween(Main, {Size = UDim2.new(0.45, 0, 0.65, 0)})
-    end
-end)
-
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 35, 0, 35)
 CloseBtn.Position = UDim2.new(1, -40, 0.5, -17.5)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 CloseBtn.BorderSizePixel = 0
-CloseBtn.Text = "✕"
+CloseBtn.Text = "x"
 CloseBtn.Font = Enum.Font.FredokaOne
 CloseBtn.TextSize = 16
 CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
