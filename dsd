@@ -842,13 +842,11 @@ function Tab:AddSlider(text, min, max, default, callback)
 
     Update(value)
 
-    -- Eventos de clique/toque
     SliderBG.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             Tween(SliderButton, {Size = UDim2.new(0, 20, 0, 20)}, 0.1)
 
-            -- Atualiza o valor no início do toque
             local posX = input.Position.X
             local sliderPos = SliderBG.AbsolutePosition.X
             local sliderSize = SliderBG.AbsoluteSize.X
@@ -858,7 +856,6 @@ function Tab:AddSlider(text, min, max, default, callback)
         end
     end)
 
-    -- Libera o arraste mesmo se o dedo/mouse sair do slider
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
@@ -868,7 +865,6 @@ function Tab:AddSlider(text, min, max, default, callback)
         end
     end)
 
-    -- Detecta movimento (mouse ou toque)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local posX = input.Position.X
@@ -881,8 +877,8 @@ function Tab:AddSlider(text, min, max, default, callback)
     end)
 
     return Slider
-end
-    
+end  -- ⚠️ CERTIFIQUE-SE QUE ESTE "end" EXISTE!
+
 function Tab:AddDropdown(text, options, default, callback)
     local dropdownKey = "Dropdown_" .. text:gsub(" ", "_")
     local selected = ConfigManager:GetSetting(dropdownKey, default or options[1])
