@@ -2,35 +2,6 @@
 
 -- ==================== DELAY INICIAL (CRÍTICO) ====================
 task.wait(3) -- Espera o anti-cheat estabilizar
--- ==================== DEBUG AVANÇADO ====================
-local function testFunction(name, func)
-    if func then
-        print("✅ " .. name .. " existe")
-        return true
-    else
-        print("❌ " .. name .. " NÃO EXISTE")
-        return false
-    end
-end
-
-print("\n🔍 Testando variáveis globais...")
-testFunction("ConfigManager", ConfigManager)
-testFunction("Library", Library)
-testFunction("Tab1", Tab1)
-testFunction("Tween", Tween)
-testFunction("AddColoredElement", AddColoredElement)
-
-if Tab1 then
-    print("\n🔍 Testando funções da Tab1...")
-    testFunction("Tab1:AddSection", Tab1.AddSection)
-    testFunction("Tab1:AddToggle", Tab1.AddToggle)
-    testFunction("Tab1:AddSlider", Tab1.AddSlider)
-    testFunction("Tab1:AddDropdown", Tab1.AddDropdown)
-    testFunction("Tab1:AddKeybind", Tab1.AddKeybind)
-    testFunction("Tab1:AddTextbox", Tab1.AddTextbox)
-    testFunction("Tab1:AddColorPicker", Tab1.AddColorPicker)
-    testFunction("Tab1:AddButton", Tab1.AddButton)
-end
 print("🕐 Aguardando inicialização segura...")
 
 -- ==================== SERVIÇOS (CACHE ANTECIPADO) ====================
@@ -438,34 +409,6 @@ Subtitle.TextColor3 = ThemeColor
 Subtitle.Parent = TopBar
 AddColoredElement(Subtitle, "TextLabels")
 
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 35, 0, 35)
-MinimizeBtn.Position = UDim2.new(1, -80, 0.5, -17.5)
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MinimizeBtn.BorderSizePixel = 0
-MinimizeBtn.Text = "─"
-MinimizeBtn.Font = Enum.Font.FredokaOne
-MinimizeBtn.TextSize = 16
-MinimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-MinimizeBtn.AutoButtonColor = false
-MinimizeBtn.Parent = TopBar
-
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 8)
-MinCorner.Parent = MinimizeBtn
-
-local minimized = false
-MinimizeBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        AspectRatio.Enabled = false
-        Tween(Main, {Size = UDim2.new(0.45, 0, 0, 40)})
-    else
-        AspectRatio.Enabled = true
-        Tween(Main, {Size = UDim2.new(0.45, 0, 0.65, 0)})
-    end
-end)
-
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 35, 0, 35)
 CloseBtn.Position = UDim2.new(1, -40, 0.5, -17.5)
@@ -871,11 +814,13 @@ function Tab:AddSlider(text, min, max, default, callback)
 
     Update(value)
 
+    -- Eventos de clique/toque
     SliderBG.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             Tween(SliderButton, {Size = UDim2.new(0, 20, 0, 20)}, 0.1)
 
+            -- Atualiza o valor no início do toque
             local posX = input.Position.X
             local sliderPos = SliderBG.AbsolutePosition.X
             local sliderSize = SliderBG.AbsoluteSize.X
@@ -885,6 +830,7 @@ function Tab:AddSlider(text, min, max, default, callback)
         end
     end)
 
+    -- Libera o arraste mesmo se o dedo/mouse sair do slider
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
@@ -894,6 +840,7 @@ function Tab:AddSlider(text, min, max, default, callback)
         end
     end)
 
+    -- Detecta movimento (mouse ou toque)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local posX = input.Position.X
@@ -906,8 +853,8 @@ function Tab:AddSlider(text, min, max, default, callback)
     end)
 
     return Slider
-end  -- ⚠️ CERTIFIQUE-SE QUE ESTE "end" EXISTE!
-
+end
+    
 function Tab:AddDropdown(text, options, default, callback)
     local dropdownKey = "Dropdown_" .. text:gsub(" ", "_")
     local selected = ConfigManager:GetSetting(dropdownKey, default or options[1])
@@ -1869,7 +1816,75 @@ local function getTargetBone(character)
 end
 
 ---------------------------------------------------------------------
--- 🔹 Lógica de mira (DECLARADA ANTES DE SER USADA)
+-- 🔹 GUI
+---------------------------------------------------------------------
+
+local function createFovCircle()
+    local oldGui = CoreGui:FindFirstChild("AimbotFOV")
+    if oldGui then oldGui:Destroy() end
+    
+    if connRecenter then connRecenter:Disconnect() connRecenter = nil end
+    if connAimbot then connAimbot:Disconnect() connAimbot = nil end
+    if connTouch then connTouch:Disconnect() connTouch = nil end
+    
+    if screenGui then screenGui:Destroy() screenGui = nil end
+    fovCircle, rootFrame = nil, nil
+
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AimbotFOV"
+    screenGui.Parent = CoreGui
+    screenGui.IgnoreGuiInset = true
+    screenGui.DisplayOrder = 9999
+
+    rootFrame = Instance.new("Frame")
+    rootFrame.BackgroundTransparency = 1
+    rootFrame.Size = UDim2.fromScale(1, 1)
+    rootFrame.Parent = screenGui
+
+    fovCircle = Instance.new("Frame")
+    fovCircle.Name = "FOVCircle"
+    fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
+    fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    fovCircle.Position = UDim2.fromScale(0.5, 0.5)
+    fovCircle.BackgroundTransparency = 1
+    fovCircle.Visible = fovVisible and aimbotEnabled
+    fovCircle.Parent = rootFrame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = fovColor
+    stroke.Thickness = 2
+    stroke.Parent = fovCircle
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = fovCircle
+
+    local aspect = Instance.new("UIAspectRatioConstraint")
+    aspect.AspectRatio = 1
+    aspect.Parent = fovCircle
+
+    local function recenter()
+        if fovCircle and camera then
+            local vp = camera.ViewportSize
+            fovCircle.Position = UDim2.fromOffset(vp.X / 2, vp.Y / 2)
+        end
+    end
+
+    connRecenter = RunService.RenderStepped:Connect(recenter)
+    recenter()
+end
+
+local function updateFovCircle()
+    if fovCircle then
+        fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
+        local stroke = fovCircle:FindFirstChildOfClass("UIStroke")
+        if stroke then stroke.Color = fovColor end
+        fovCircle.Visible = fovVisible and aimbotEnabled
+    end
+end
+
+---------------------------------------------------------------------
+-- 🔹 Lógica de mira
 ---------------------------------------------------------------------
 
 local function getClosestTargetWithinFov()
@@ -1944,74 +1959,6 @@ local function aimbotUpdate(delta)
 end
 
 ---------------------------------------------------------------------
--- 🔹 GUI
----------------------------------------------------------------------
-
-local function createFovCircle()
-    local oldGui = CoreGui:FindFirstChild("AimbotFOV")
-    if oldGui then oldGui:Destroy() end
-    
-    if connRecenter then connRecenter:Disconnect() connRecenter = nil end
-    if connAimbot then connAimbot:Disconnect() connAimbot = nil end
-    if connTouch then connTouch:Disconnect() connTouch = nil end
-    
-    if screenGui then screenGui:Destroy() screenGui = nil end
-    fovCircle, rootFrame = nil, nil
-
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "AimbotFOV"
-    screenGui.Parent = CoreGui
-    screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = 9999
-
-    rootFrame = Instance.new("Frame")
-    rootFrame.BackgroundTransparency = 1
-    rootFrame.Size = UDim2.fromScale(1, 1)
-    rootFrame.Parent = screenGui
-
-    fovCircle = Instance.new("Frame")
-    fovCircle.Name = "FOVCircle"
-    fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
-    fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-    fovCircle.Position = UDim2.fromScale(0.5, 0.5)
-    fovCircle.BackgroundTransparency = 1
-    fovCircle.Visible = fovVisible and aimbotEnabled
-    fovCircle.Parent = rootFrame
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = fovColor
-    stroke.Thickness = 2
-    stroke.Parent = fovCircle
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = fovCircle
-
-    local aspect = Instance.new("UIAspectRatioConstraint")
-    aspect.AspectRatio = 1
-    aspect.Parent = fovCircle
-
-    local function recenter()
-        if fovCircle and camera then
-            local vp = camera.ViewportSize
-            fovCircle.Position = UDim2.fromOffset(vp.X / 2, vp.Y / 2)
-        end
-    end
-
-    connRecenter = RunService.RenderStepped:Connect(recenter)
-    recenter()
-end
-
-local function updateFovCircle()
-    if fovCircle then
-        fovCircle.Size = UDim2.fromOffset(fov * 2, fov * 2)
-        local stroke = fovCircle:FindFirstChildOfClass("UIStroke")
-        if stroke then stroke.Color = fovColor end
-        fovCircle.Visible = fovVisible and aimbotEnabled
-    end
-end
-
----------------------------------------------------------------------
 -- 🔹 CONTROLES MOBILE
 ---------------------------------------------------------------------
 
@@ -2032,38 +1979,18 @@ local function setupMobileControls()
 end
 
 ---------------------------------------------------------------------
--- 🔹 Inicialização (DEPOIS de declarar todas as funções)
+-- 🔹 Inicialização e UI
 ---------------------------------------------------------------------
 
 createFovCircle()
 
-if aimbotEnabled then
+if aimbotEnabled and not connAimbot then
     connAimbot = RunService.RenderStepped:Connect(aimbotUpdate)
 end
 
 if isMobile then
     setupMobileControls()
 end
-
--- Keybind para PC (botão direito do mouse)
-if isPC then
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            rightMouseHeld = true
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            rightMouseHeld = false
-        end
-    end)
-end
-
----------------------------------------------------------------------
--- 🔹 INTERFACE
----------------------------------------------------------------------
 
 if Tab1 then
     Tab1:AddSection("Legit Aimbot Settings", "left")
