@@ -1737,10 +1737,29 @@ function Tab:AddButton(text, callback)
     return Button
 end
     
-    function Tab:Show()
-        task.wait(0.1)
-        TabBtn.MouseButton1Click:Fire()
-    end
+function Tab:Show()
+    task.wait(0.1)
+    -- Simular clique natural sem usar :Fire()
+    pcall(function()
+        for _, frame in pairs(ContentArea:GetChildren()) do
+            if frame:IsA("Frame") then frame.Visible = false end
+        end
+        
+        for _, btn in pairs(TabsBar:GetChildren()) do
+            if btn:IsA("TextButton") then
+                Tween(btn, {BackgroundColor3 = Color3.fromRGB(18, 18, 18)})
+                Tween(btn, {TextColor3 = Color3.fromRGB(130, 130, 130)})
+                local ind = btn:FindFirstChild("Indicator")
+                if ind then ind.Visible = false end
+            end
+        end
+        
+        TabContent.Visible = true
+        Indicator.Visible = true
+        Tween(TabBtn, {BackgroundColor3 = Color3.fromRGB(25, 25, 25)})
+        Tween(TabBtn, {TextColor3 = Color3.fromRGB(255, 255, 255)})
+    end)
+end
     
     return Tab
 end
