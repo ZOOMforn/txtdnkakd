@@ -2,6 +2,35 @@
 
 -- ==================== DELAY INICIAL (CRÍTICO) ====================
 task.wait(3) -- Espera o anti-cheat estabilizar
+-- ==================== DEBUG AVANÇADO ====================
+local function testFunction(name, func)
+    if func then
+        print("✅ " .. name .. " existe")
+        return true
+    else
+        print("❌ " .. name .. " NÃO EXISTE")
+        return false
+    end
+end
+
+print("\n🔍 Testando variáveis globais...")
+testFunction("ConfigManager", ConfigManager)
+testFunction("Library", Library)
+testFunction("Tab1", Tab1)
+testFunction("Tween", Tween)
+testFunction("AddColoredElement", AddColoredElement)
+
+if Tab1 then
+    print("\n🔍 Testando funções da Tab1...")
+    testFunction("Tab1:AddSection", Tab1.AddSection)
+    testFunction("Tab1:AddToggle", Tab1.AddToggle)
+    testFunction("Tab1:AddSlider", Tab1.AddSlider)
+    testFunction("Tab1:AddDropdown", Tab1.AddDropdown)
+    testFunction("Tab1:AddKeybind", Tab1.AddKeybind)
+    testFunction("Tab1:AddTextbox", Tab1.AddTextbox)
+    testFunction("Tab1:AddColorPicker", Tab1.AddColorPicker)
+    testFunction("Tab1:AddButton", Tab1.AddButton)
+end
 print("🕐 Aguardando inicialização segura...")
 
 -- ==================== SERVIÇOS (CACHE ANTECIPADO) ====================
