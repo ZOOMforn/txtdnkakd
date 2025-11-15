@@ -429,10 +429,16 @@ local minimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        AspectRatio.Enabled = false
+        -- Remover AspectRatio ao invés de desabilitar
+        if AspectRatio and AspectRatio.Parent then
+            AspectRatio.Parent = nil
+        end
         Tween(Main, {Size = UDim2.new(0.45, 0, 0, 40)})
     else
-        AspectRatio.Enabled = true
+        -- Restaurar AspectRatio
+        if AspectRatio then
+            AspectRatio.Parent = Main
+        end
         Tween(Main, {Size = UDim2.new(0.45, 0, 0.65, 0)})
     end
 end)
