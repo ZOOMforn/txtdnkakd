@@ -10,42 +10,102 @@ local HttpService = game:GetService("HttpService")
 
 print("🔄 Iniciando Xeno UI V6 KRNL Edition...")
 
--- ==================== ANTI-DETECÇÃO KRNL ====================
+-- ==================== ANTI-DETECÇÃO AVANÇADA ====================
 local function setupAntiDetection()
-    -- Proteger contra detecção de ScreenGui
-    local oldNewIndex = nil
-    oldNewIndex = hookmetamethod(game, "__newindex", newcclosure(function(self, key, value)
-        if key == "Parent" and typeof(self) == "Instance" and self:IsA("ScreenGui") then
-            if value == CoreGui or value == Players.LocalPlayer:WaitForChild("PlayerGui") then
-                -- Permitir silenciosamente
-            end
-        end
-        return oldNewIndex(self, key, value)
-    end))
+    -- Proteger Character de ser deletado
+    local Player = Players.LocalPlayer
     
-    -- Proteção contra loops de detecção
+    -- Hook para prevenir Character:Destroy()
     local oldNamecall = nil
     oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
         local args = {...}
         
-        -- Bloquear detecções comuns
+        -- Bloquear Kick
         if method == "Kick" or method == "kick" then
+            warn("🛡️ Tentativa de kick bloqueada!")
             return
         end
         
+        -- Bloquear destruição do Character
+        if (method == "Destroy" or method == "destroy" or method == "Remove" or method == "remove") then
+            if self == Player.Character or (Player.Character and self:IsDescendantOf(Player.Character)) then
+                warn("🛡️ Tentativa de deletar character bloqueada!")
+                return
+            end
+        end
+        
+        -- Bloquear FireServer/InvokeServer suspeitos
         if method == "FireServer" or method == "InvokeServer" then
             local remoteName = tostring(self)
-            -- Filtrar remotes de anti-cheat conhecidos
-            if remoteName:lower():find("anticheat") or remoteName:lower():find("detect") then
-                return
+            local lowerName = remoteName:lower()
+            
+            -- Lista negra de remotes suspeitos
+            local blacklist = {
+                "anticheat", "detect", "ban", "kick", "punish", 
+                "security", "check", "verify", "validate", "guard"
+            }
+            
+            for _, word in ipairs(blacklist) do
+                if lowerName:find(word) then
+                    warn("🛡️ Remote suspeito bloqueado: " .. remoteName)
+                    return
+                end
             end
         end
         
         return oldNamecall(self, ...)
     end))
     
-    print("✅ Anti-detecção ativado")
+    -- Proteger __newindex
+    local oldNewIndex = nil
+    oldNewIndex = hookmetamethod(game, "__newindex", newcclosure(function(self, key, value)
+        -- Prevenir modificação do Character
+        if self == Player.Character then
+            if key == "Parent" and value == nil then
+                warn("🛡️ Tentativa de remover character bloqueada!")
+                return
+            end
+        end
+        
+        -- Prevenir modificação de Humanoid
+        if self:IsA("Humanoid") and self:IsDescendantOf(Player.Character) then
+            if key == "Health" and value <= 0 then
+                warn("🛡️ Tentativa de matar player bloqueada!")
+                return
+            end
+        end
+        
+        return oldNewIndex(self, key, value)
+    end))
+    
+    -- Proteção extra: monitorar Character
+    if Player.Character then
+        Player.Character.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                warn("⚠️ Character foi removido! Tentando restaurar...")
+                task.wait(0.5)
+                if not Player.Character then
+                    Player:LoadCharacter()
+                end
+            end
+        end)
+    end
+    
+    Player.CharacterAdded:Connect(function(char)
+        char.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                warn("⚠️ Character foi removido! Tentando restaurar...")
+                task.wait(0.5)
+                if not Player.Character then
+                    Player:LoadCharacter()
+                end
+            end
+        end)
+    end)
+    
+    print("✅ Anti-detecção avançada ativada")
+    print("🛡️ Character protegido contra remoção")
 end
 
 pcall(setupAntiDetection)
@@ -233,23 +293,48 @@ else
     InputHandler.CurrentBind = Enum.KeyCode.RightShift
 end
 
--- ==================== CRIAR UI PROTEGIDA ====================
+-- ==================== CRIAR UI ULTRA-PROTEGIDA ====================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "XenoUI"
+ScreenGui.Name = "XenoUI_" .. math.random(1000, 9999) -- Nome aleatório
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999
+ScreenGui.IgnoreGuiInset = true
 
--- Proteção adicional para KRNL
-pcall(function()
-    ScreenGui.Parent = CoreGui
-end)
-
-if not ScreenGui.Parent then
+-- Proteção multi-camada para KRNL
+local function protectGui()
     pcall(function()
-        ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+        -- Tentar CoreGui primeiro (mais seguro)
+        ScreenGui.Parent = CoreGui
+        print("✅ GUI injetada no CoreGui")
+    end)
+    
+    if not ScreenGui.Parent then
+        pcall(function()
+            -- Fallback: PlayerGui
+            ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+            print("✅ GUI injetada no PlayerGui")
+        end)
+    end
+    
+    -- Proteção contra remoção
+    ScreenGui.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            warn("⚠️ GUI foi removida! Restaurando...")
+            task.wait(0.1)
+            pcall(function()
+                ScreenGui.Parent = CoreGui
+            end)
+            if not ScreenGui.Parent then
+                pcall(function()
+                    ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+                end)
+            end
+        end
     end)
 end
+
+protectGui()
 
 -- VARIÁVEIS GLOBAIS
 local ThemeColor = Color3.fromRGB(unpack(ConfigManager.CurrentConfig.Theme.Color))
@@ -412,7 +497,8 @@ end
 local Main = Instance.new("Frame")
 Main.Name = "MainFrame"
 Main.Size = UDim2.new(0, 0, 0, 0)
-Main.Position = UDim2.new(0.5, -290, 0.5, -270)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
 Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 Main.BackgroundTransparency = 0.1
 Main.BorderSizePixel = 0
