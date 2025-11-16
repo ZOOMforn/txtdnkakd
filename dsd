@@ -2123,49 +2123,72 @@ if Tab1 then
         updateFovCircle()
     end)
     
-    Tab1:AddSection("REVISTAR", "right")
+
+Tab1:AddSection("REVISTAR", "right")
 
     local RS = game:GetService("ReplicatedStorage"):WaitForChild("RemoteNovos")
     local revistarRemote = RS:WaitForChild("bixobrabo")
-    local revistarEnabled = false
+    
+    -- Sistema de revistar com estado persistente
+    local revistarEnabled = ConfigManager:GetSetting("Revistar_Enabled", false)
+    local revistarKeybindSaved = ConfigManager:GetSetting("Keybind_REVISTAR_Keybind", nil)
+    local revistarConnection = nil
+    
+    -- Função para ativar/desativar a keybind
+    local function setupRevistarKeybind(enabled)
+        if revistarConnection then
+            revistarConnection:Disconnect()
+            revistarConnection = nil
+        end
+        
+        if enabled then
+            revistarConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                if gameProcessed then return end
+                
+                -- Pegar a keybind salva ou usar T como padrão
+                local savedKeybind = ConfigManager:GetSetting("Keybind_REVISTAR_Keybind", nil)
+                local keybindToUse = Enum.KeyCode.T
+                
+                if savedKeybind and type(savedKeybind) == "table" then
+                    local bindType = savedKeybind.Type
+                    local bindValue = savedKeybind.Value
+                    keybindToUse = InputHandler:StringToInput(bindType, bindValue) or Enum.KeyCode.T
+                end
+                
+                local matches = false
+                if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == keybindToUse then
+                    matches = true
+                end
+                
+                if matches then
+                    pcall(function()
+                        revistarRemote:FireServer("/revistar")
+                        print("✅ Revistar ativado!")
+                    end)
+                end
+            end)
+            print("🔑 Keybind de revistar ATIVADA")
+        else
+            print("🔒 Keybind de revistar DESATIVADA")
+        end
+    end
+    
+    -- Ativar automaticamente se estava habilitado
+    if revistarEnabled then
+        setupRevistarKeybind(true)
+        print("🔄 Revistar carregado como ATIVADO")
+    end
 
     Tab1:AddToggle("REVISTAR NA KEYBIND", revistarEnabled, function(v)
         revistarEnabled = v
+        ConfigManager:UpdateSetting("Revistar_Enabled", v)
+        setupRevistarKeybind(v)
     end)
 
-    Tab1:AddKeybind("REVISTAR Keybind", Enum.KeyCode.T, function()
-        if revistarEnabled then
-            revistarRemote:FireServer("/revistar")
-        end
+    Tab1:AddKeybind("REVISTAR Keybind", revistarKeybindSaved and InputHandler:StringToInput(revistarKeybindSaved.Type, revistarKeybindSaved.Value) or Enum.KeyCode.T, function()
+        -- Callback vazio - a keybind é gerenciada pelo setupRevistarKeybind
     end)
 
-    Tab1:AddSection("Consertar", "right")
-
-    local consertarEnabled = false
-
-    Tab1:AddToggle("CONSERTAR NA KEYBIND", consertarEnabled, function(v)
-        consertarEnabled = v
-    end)
-
-    Tab1:AddKeybind("CONSERTAR Keybind", Enum.KeyCode.Y, function()
-        if consertarEnabled then
-            revistarRemote:FireServer("/consertar")
-        end
-    end)
-
-    Tab1:AddSection("Abastecer", "right")
-
-    local abastecerEnabled = false
-
-    Tab1:AddToggle("ABASTECER NA KEYBIND", abastecerEnabled, function(v)
-        abastecerEnabled = v
-    end)
-
-    Tab1:AddKeybind("ABASTECER Keybind", Enum.KeyCode.U, function()
-        if abastecerEnabled then
-            revistarRemote:FireServer("/abastecer")
-        end
-    end)
 end
 
 workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
@@ -2961,8 +2984,8 @@ Tab3:AddButton("Ativar Baú", function()
     
     pcall(configurarBau)
 end)
-
-Tab3:AddButton("Auto-Puxar Itens", function()
+Tab3:AddSection("Auto-Revistar", "right")
+Tab3:AddButton("Auto-Revistar", function()
     local autoPuxarScript = [[
 -- ═══════════════════════════════════════════════════════
 -- AUTO-PUXAR OTIMIZADO - DELTA EXECUTOR
