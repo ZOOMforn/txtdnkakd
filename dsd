@@ -493,25 +493,43 @@ ContentArea.Parent = RightSide
 MakeDraggable(Main)
 
 -- ==================== KEYBIND TOGGLE ====================
-local UIToggleConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    local matches = false
-    
-    if InputHandler.BindType == "KeyCode" then
-        if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == InputHandler.CurrentBind then
-            matches = true
-        end
-    elseif InputHandler.BindType == "UserInputType" then
-        if input.UserInputType == InputHandler.CurrentBind then
-            matches = true
-        end
+local UIToggleConnection = nil
+
+local function SetupUIToggle()
+    -- Desconectar keybind anterior
+    if UIToggleConnection then
+        pcall(function() UIToggleConnection:Disconnect() end)
+        UIToggleConnection = nil
     end
     
-    if matches then
-        Main.Visible = not Main.Visible
-    end
-end)
+    -- Criar nova conexão
+    UIToggleConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        local matches = false
+        
+        -- Verificar se o input corresponde à keybind
+        if InputHandler.BindType == "KeyCode" then
+            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == InputHandler.CurrentBind then
+                matches = true
+            end
+        elseif InputHandler.BindType == "UserInputType" then
+            if input.UserInputType == InputHandler.CurrentBind then
+                matches = true
+            end
+        end
+        
+        if matches then
+            Main.Visible = not Main.Visible
+            print("🔑 UI toggled via keybind:", InputHandler:GetBindName())
+        end
+    end)
+    
+    print("✅ Keybind configurada:", InputHandler:GetBindName())
+end
+
+-- Ativar keybind inicial
+SetupUIToggle()
 
 -- Auto-save ao fechar
 ScreenGui.Destroying:Connect(function()
@@ -3002,7 +3020,7 @@ local ITENS_PERMITIDOS = {
     "AK47", "Planta Suja", "Planta Limpa", "Uzi", "PARAFAL",
     "Faca", "IA2", "G3", "IPhone 14", "Hi Power", "Glock 17",
     "Tratamento", "AR-15", "Lockpick", "Escudo", "C4",
-    "Plástico Vazio", "Usp"
+    "Plástico Vazio", "Plástico Pronto"
 }
 
 local CONFIG = {
@@ -3340,9 +3358,12 @@ local connection
 UIKBButton.MouseButton1Click:Connect(function()
     if listening then return end
     listening = true
-    UIKBButton.Text = "..."
+    UIKBButton.Text = "Pressione..."
     
-    if connection then connection:Disconnect() end
+    if connection then 
+        pcall(function() connection:Disconnect() end)
+        connection = nil
+    end
     
     connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not listening then return end
@@ -3352,19 +3373,26 @@ UIKBButton.MouseButton1Click:Connect(function()
             [Enum.UserInputType.MouseButton1] = true,
             [Enum.UserInputType.MouseButton2] = true,
             [Enum.UserInputType.MouseButton3] = true,
-            [Enum.UserInputType.Gamepad1] = true,
-            [Enum.UserInputType.Gamepad2] = true,
         }
         
         if validInputs[input.UserInputType] then
+            -- Salvar nova keybind
             local newBindName = InputHandler:SetBinding(input)
             UIKBButton.Text = newBindName
             listening = false
             
+            -- Salvar config
             ConfigManager:SaveConfig()
+            
+            -- 🔥 RECONFIGURAR KEYBIND (ISSO É CRÍTICO!)
             SetupUIToggle()
             
-            if connection then connection:Disconnect() end
+            print("🔑 Nova keybind salva:", newBindName)
+            
+            if connection then 
+                pcall(function() connection:Disconnect() end)
+                connection = nil
+            end
         end
     end)
     
@@ -3372,7 +3400,10 @@ UIKBButton.MouseButton1Click:Connect(function()
         if listening then
             listening = false
             UIKBButton.Text = InputHandler:GetBindName()
-            if connection then connection:Disconnect() end
+            if connection then 
+                pcall(function() connection:Disconnect() end)
+                connection = nil
+            end
         end
     end)
 end)
@@ -3485,7 +3516,6 @@ local function SetupUIToggle()
     end)
 end
 
-SetupUIToggle()
 
 ScreenGui.Destroying:Connect(function()
     if ConfigManager.AutoSave ~= false then
