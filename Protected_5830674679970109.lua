@@ -11,15 +11,15 @@ local tweeninfo = TweenInfo.new
 -- additional
 local utility = {}
 
--- themes
+-- themes - 🎨 TEMA AZUL COM PRETO
 local objects = {}
 local themes = {
-	Background = Color3.fromRGB(24, 24, 24), 
-	Glow = Color3.fromRGB(0, 0, 0), 
-	Accent = Color3.fromRGB(10, 10, 10), 
-	LightContrast = Color3.fromRGB(20, 20, 20), 
-	DarkContrast = Color3.fromRGB(14, 14, 14),  
-	TextColor = Color3.fromRGB(255, 255, 255)
+	Background = Color3.fromRGB(15, 15, 20),        -- Preto azulado escuro
+	Glow = Color3.fromRGB(0, 100, 255),             -- Azul brilhante para glow
+	Accent = Color3.fromRGB(30, 120, 255),          -- Azul vibrante (TopBar)
+	LightContrast = Color3.fromRGB(25, 35, 50),     -- Azul escuro claro
+	DarkContrast = Color3.fromRGB(18, 22, 30),      -- Azul muito escuro
+	TextColor = Color3.fromRGB(200, 220, 255)       -- Branco azulado
 }
 
 do
