@@ -254,7 +254,7 @@ do
 			ResetOnSpawn = false,
 			DisplayOrder = 100,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-			NoCorner = true
+							CornerRadius = 6
 		}, {
 			utility:Create("ImageLabel", {
 				Name = "Main",
@@ -265,7 +265,7 @@ do
 				ImageColor3 = themes.Background,
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(4, 4, 296, 296),
-				CornerRadius = 10,
+				CornerRadius = 6,
 				ZIndex = 1
 			}, {
 				utility:Create("ImageLabel", {
@@ -278,7 +278,7 @@ do
 					ImageColor3 = themes.Glow,
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(24, 24, 276, 276),
-					NoCorner = true
+									CornerRadius = 6
 				}),
 				utility:Create("ImageLabel", {
 					Name = "Pages",
@@ -291,7 +291,7 @@ do
 					ImageColor3 = themes.DarkContrast,
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(4, 4, 296, 296),
-					CornerRadius = 8
+						CornerRadius = 6
 				}, {
 					utility:Create("ScrollingFrame", {
 						Name = "Pages_Container",
@@ -301,12 +301,12 @@ do
 						Size = UDim2.new(1, 0, 1, -20),
 						CanvasSize = UDim2.new(0, 0, 0, 314),
 						ScrollBarThickness = 0,
-						NoCorner = true
+										CornerRadius = 6
 					}, {
 						utility:Create("UIListLayout", {
 							SortOrder = Enum.SortOrder.LayoutOrder,
 							Padding = UDim.new(0, 10),
-							NoCorner = true
+											CornerRadius = 6
 						})
 					})
 				}),
@@ -320,7 +320,7 @@ do
 					ImageColor3 = themes.Accent,
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(4, 4, 296, 296),
-					CornerRadius = 10
+						CornerRadius = 6
 				}, {
 					utility:Create("TextLabel", {
 						Name = "Title",
@@ -334,7 +334,7 @@ do
 						TextColor3 = themes.TextColor,
 						TextSize = 14,
 						TextXAlignment = Enum.TextXAlignment.Left,
-						NoCorner = true
+										CornerRadius = 6
 					})
 				})
 			})
@@ -377,7 +377,7 @@ do
 				TextSize = 12,
 				TextTransparency = 0.65,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+								CornerRadius = 6
 			}),
 			icon and utility:Create("ImageLabel", {
 				Name = "Icon", 
@@ -390,7 +390,7 @@ do
 				ImageColor3 = themes.TextColor,
 				ImageTransparency = 0.64,
 				ScaleType = Enum.ScaleType.Fit,
-				NoCorner = true
+								CornerRadius = 6
 			}) or {}
 		})
 		
@@ -406,12 +406,12 @@ do
 			ScrollBarThickness = 3,
 			ScrollBarImageColor3 = themes.DarkContrast,
 			Visible = false,
-			NoCorner = true
+							CornerRadius = 6
 		}, {
 			utility:Create("UIListLayout", {
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				Padding = UDim.new(0, 10),
-				NoCorner = true
+								CornerRadius = 6
 			})
 		})
 		
@@ -435,7 +435,7 @@ do
 			ScaleType = Enum.ScaleType.Slice,
 			SliceCenter = Rect.new(4, 4, 296, 296),
 			ClipsDescendants = true,
-			CornerRadius = 8
+				CornerRadius = 6
 		}, {
 			utility:Create("Frame", {
 				Name = "Container",
@@ -444,7 +444,7 @@ do
 				BorderSizePixel = 0,
 				Position = UDim2.new(0, 8, 0, 8),
 				Size = UDim2.new(1, -16, 1, -16),
-				NoCorner = true
+								CornerRadius = 6
 			}, {
 				utility:Create("TextLabel", {
 					Name = "Title",
@@ -457,12 +457,12 @@ do
 					TextSize = 12,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					TextTransparency = 1,
-					NoCorner = true
+									CornerRadius = 6
 				}),
 				utility:Create("UIListLayout", {
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					Padding = UDim.new(0, 4),
-					NoCorner = true
+									CornerRadius = 6
 				})
 			})
 		})
@@ -567,7 +567,7 @@ do
 			SliceCenter = Rect.new(4, 4, 296, 296),
 			ZIndex = 3,
 			ClipsDescendants = true,
-			CornerRadius = 8
+					CornerRadius = 6
 		}, {
 			utility:Create("ImageLabel", {
 				Name = "Flash",
@@ -576,7 +576,7 @@ do
 				Image = "rbxassetid://4641149554",
 				ImageColor3 = themes.TextColor,
 				ZIndex = 5,
-				CornerRadius = 8
+							CornerRadius = 6
 			}),
 			utility:Create("ImageLabel", {
 				Name = "Glow",
@@ -588,7 +588,7 @@ do
 				ImageColor3 = themes.Glow,
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(24, 24, 276, 276),
-				NoCorner = true
+								CornerRadius = 6
 			}),
 			utility:Create("TextLabel", {
 				Name = "Title",
@@ -600,7 +600,7 @@ do
 				TextColor3 = themes.TextColor,
 				TextSize = 14.000,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+								CornerRadius = 6
 			}),
 			utility:Create("TextLabel", {
 				Name = "Text",
@@ -612,7 +612,7 @@ do
 				TextColor3 = themes.TextColor,
 				TextSize = 12.000,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+								CornerRadius = 6
 			}),
 			utility:Create("ImageButton", {
 				Name = "Accept",
@@ -622,7 +622,7 @@ do
 				Image = "rbxassetid://5012538259",
 				ImageColor3 = themes.TextColor,
 				ZIndex = 4,
-				NoCorner = true
+								CornerRadius = 6
 			}),
 			utility:Create("ImageButton", {
 				Name = "Decline",
@@ -632,7 +632,7 @@ do
 				Image = "rbxassetid://5012538583",
 				ImageColor3 = themes.TextColor,
 				ZIndex = 4,
-				NoCorner = true
+								CornerRadius = 6
 			})
 		})
 		
@@ -733,7 +733,7 @@ do
 				TextColor3 = themes.TextColor,
 				TextSize = 12,
 				TextTransparency = 0.10000000149012,
-				NoCorner = true
+				CornerRadius = 6
 			})
 		})
 		
@@ -795,7 +795,7 @@ do
 				TextSize = 12,
 				TextTransparency = 0.10000000149012,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+				CornerRadius = 6
 			}),
 			utility:Create("ImageLabel", {
 				Name = "Button",
@@ -808,7 +808,7 @@ do
 				ImageColor3 = themes.LightContrast,
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(2, 2, 298, 298),
-				CornerRadius = 12
+				CornerRadius = 6
 			}, {
 				utility:Create("ImageLabel", {
 					Name = "Frame",
@@ -820,7 +820,7 @@ do
 					ImageColor3 = themes.TextColor,
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(2, 2, 298, 298),
-					CornerRadius = 10
+				CornerRadius = 6
 				})
 			})
 		})
@@ -871,7 +871,7 @@ do
 				TextSize = 12,
 				TextTransparency = 0.10000000149012,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+				CornerRadius = 6
 			}),
 			utility:Create("ImageLabel", {
 				Name = "Button",
@@ -883,7 +883,7 @@ do
 				ImageColor3 = themes.LightContrast,
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(2, 2, 298, 298),
-				CornerRadius = 4
+					CornerRadius = 6
 			}, {
 				utility:Create("TextBox", {
 					Name = "Textbox", 
@@ -896,7 +896,7 @@ do
 					Text = default or "",
 					TextColor3 = themes.TextColor,
 					TextSize = 11,
-					NoCorner = true
+					CornerRadius = 6
 				})
 			})
 		})
@@ -979,7 +979,7 @@ do
 				TextSize = 12,
 				TextTransparency = 0.10000000149012,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+					CornerRadius = 6
 			}),
 			utility:Create("ImageLabel", {
 				Name = "Button",
@@ -991,7 +991,7 @@ do
 				ImageColor3 = themes.LightContrast,
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(2, 2, 298, 298),
-				CornerRadius = 4
+					CornerRadius = 6
 			}, {
 				utility:Create("TextLabel", {
 					Name = "Text",
@@ -1003,7 +1003,7 @@ do
 					Text = default and default.Name or "None",
 					TextColor3 = themes.TextColor,
 					TextSize = 11,
-					NoCorner = true
+						CornerRadius = 6
 				})
 			})
 		})
@@ -1086,7 +1086,7 @@ do
 				TextSize = 12,
 				TextTransparency = 0.10000000149012,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+						CornerRadius = 6
 			}),
 			utility:Create("ImageButton", {
 				Name = "Button",
@@ -1099,7 +1099,7 @@ do
 				ImageColor3 = Color3.fromRGB(255, 255, 255),
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(2, 2, 298, 298),
-				CornerRadius = 4
+					CornerRadius = 6
 			})
 		})
 		
@@ -1116,7 +1116,7 @@ do
 			ScaleType = Enum.ScaleType.Slice,
 			SliceCenter = Rect.new(2, 2, 298, 298),
 			Visible = false,
-			CornerRadius = 8
+					CornerRadius = 6
 		}, {
 			utility:Create("ImageLabel", {
 				Name = "Glow",
@@ -1128,7 +1128,7 @@ do
 				ImageColor3 = themes.Glow,
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(22, 22, 278, 278),
-				NoCorner = true
+				CornerRadius = 6
 			}),
 			utility:Create("TextLabel", {
 				Name = "Title",
@@ -1141,7 +1141,7 @@ do
 				TextColor3 = themes.TextColor,
 				TextSize = 14,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+				CornerRadius = 6
 			}),
 			utility:Create("ImageButton", {
 				Name = "Close",
@@ -1151,19 +1151,19 @@ do
 				ZIndex = 2,
 				Image = "rbxassetid://5012538583",
 				ImageColor3 = themes.TextColor,
-				NoCorner = true
+					CornerRadius = 6
 			}), 
 			utility:Create("Frame", {
 				Name = "Container",
 				BackgroundTransparency = 1,
 				Position = UDim2.new(0, 8, 0, 32),
 				Size = UDim2.new(1, -18, 1, -40),
-				NoCorner = true
+							CornerRadius = 6
 			}, {
 				utility:Create("UIListLayout", {
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					Padding = UDim.new(0, 6),
-					NoCorner = true
+									CornerRadius = 6
 				}),
 				utility:Create("ImageButton", {
 					Name = "Canvas",
@@ -1175,7 +1175,7 @@ do
 					ImageColor3 = Color3.fromRGB(255, 0, 0),
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(2, 2, 298, 298),
-					CornerRadius = 4
+							CornerRadius = 6
 				}, {
 					utility:Create("ImageLabel", {
 						Name = "White_Overlay",
@@ -1183,7 +1183,7 @@ do
 						Size = UDim2.new(1, 0, 0, 60),
 						Image = "rbxassetid://5107152351",
 						SliceCenter = Rect.new(2, 2, 298, 298),
-						CornerRadius = 4
+							CornerRadius = 6
 					}),
 					utility:Create("ImageLabel", {
 						Name = "Black_Overlay",
@@ -1191,7 +1191,7 @@ do
 						Size = UDim2.new(1, 0, 0, 60),
 						Image = "rbxassetid://5107152095",
 						SliceCenter = Rect.new(2, 2, 298, 298),
-						CornerRadius = 4
+						CornerRadius = 6
 					}),
 					utility:Create("ImageLabel", {
 						Name = "Cursor",
@@ -1202,7 +1202,7 @@ do
 						Position = UDim2.new(0, 0, 0, 0),
 						Image = "rbxassetid://5100115962",
 						SliceCenter = Rect.new(2, 2, 298, 298),
-						NoCorner = true
+						CornerRadius = 6
 					})
 				}),
 				utility:Create("ImageButton", {
@@ -1217,7 +1217,7 @@ do
 					Image = "rbxassetid://5028857472",
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(2, 2, 298, 298),
-					CornerRadius = 8
+					CornerRadius = 6
 				}, {
 					utility:Create("Frame", {
 						Name = "Select",
@@ -1226,7 +1226,7 @@ do
 						Position = UDim2.new(1, 0, 0, 0),
 						Size = UDim2.new(0, 2, 1, 0),
 						ZIndex = 2,
-						NoCorner = true
+								CornerRadius = 6
 					}),
 					utility:Create("UIGradient", {
 						Color = ColorSequence.new({
@@ -1238,7 +1238,7 @@ do
 							ColorSequenceKeypoint.new(0.82, Color3.fromRGB(255, 0, 255)), 
 							ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0))
 						}),
-						NoCorner = true
+								CornerRadius = 6
 					})
 				}),
 				utility:Create("Frame", {
@@ -1246,13 +1246,13 @@ do
 					BackgroundTransparency = 1,
 					Position = UDim2.new(0, 10, 0, 158),
 					Size = UDim2.new(1, 0, 0, 16),
-					NoCorner = true
+						CornerRadius = 6
 				}, {
 					utility:Create("UIListLayout", {
 						FillDirection = Enum.FillDirection.Horizontal,
 						SortOrder = Enum.SortOrder.LayoutOrder,
 						Padding = UDim.new(0, 6),
-						NoCorner = true
+							CornerRadius = 6
 					}),
 					utility:Create("ImageLabel", {
 						Name = "R",
@@ -1264,7 +1264,7 @@ do
 						ImageColor3 = themes.DarkContrast,
 						ScaleType = Enum.ScaleType.Slice,
 						SliceCenter = Rect.new(2, 2, 298, 298),
-						CornerRadius = 4
+								CornerRadius = 6
 					}, {
 						utility:Create("TextLabel", {
 							Name = "Text",
@@ -1275,7 +1275,7 @@ do
 							Text = "R:",
 							TextColor3 = themes.TextColor,
 							TextSize = 10.000,
-							NoCorner = true
+									CornerRadius = 6
 						}),
 						utility:Create("TextBox", {
 							Name = "Textbox",
@@ -1288,7 +1288,7 @@ do
 							Text = "255",
 							TextColor3 = themes.TextColor,
 							TextSize = 10.000,
-							NoCorner = true
+									CornerRadius = 6
 						})
 					}),
 					utility:Create("ImageLabel", {
@@ -1312,7 +1312,7 @@ do
 							Text = "G:",
 							TextColor3 = themes.TextColor,
 							TextSize = 10.000,
-							NoCorner = true
+							CornerRadius = 6
 						}),
 						utility:Create("TextBox", {
 							Name = "Textbox",
@@ -1324,7 +1324,7 @@ do
 							Text = "255",
 							TextColor3 = themes.TextColor,
 							TextSize = 10.000,
-							NoCorner = true
+									CornerRadius = 6
 						})
 					}),
 					utility:Create("ImageLabel", {
@@ -1348,7 +1348,7 @@ do
 							Text = "B:",
 							TextColor3 = themes.TextColor,
 							TextSize = 10.000,
-							NoCorner = true
+				CornerRadius = 6
 						}),
 						utility:Create("TextBox", {
 							Name = "Textbox",
@@ -1360,7 +1360,7 @@ do
 							Text = "255",
 							TextColor3 = themes.TextColor,
 							TextSize = 10.000,
-							NoCorner = true
+				CornerRadius = 6
 						})
 					}),
 				}),
@@ -1385,7 +1385,7 @@ do
 						Text = "Submit",
 						TextColor3 = themes.TextColor,
 						TextSize = 11.000,
-						NoCorner = true
+				CornerRadius = 6
 					})
 				})
 			})
@@ -1631,7 +1631,7 @@ do
 				TextSize = 12,
 				TextTransparency = 0.10000000149012,
 				TextXAlignment = Enum.TextXAlignment.Left,
-				NoCorner = true
+				CornerRadius = 6
 			}),
 			utility:Create("TextBox", {
 				Name = "TextBox",
@@ -1645,7 +1645,7 @@ do
 				TextColor3 = themes.TextColor,
 				TextSize = 12,
 				TextXAlignment = Enum.TextXAlignment.Right,
-				NoCorner = true
+				CornerRadius = 6
 			}),
 			utility:Create("TextLabel", {
 				Name = "Slider",
@@ -1654,7 +1654,7 @@ do
 				Size = UDim2.new(1, -20, 0, 16),
 				ZIndex = 3,
 				Text = "",
-				NoCorner = true
+				CornerRadius = 6
 			}, {
 				utility:Create("ImageLabel", {
 					Name = "Bar",
@@ -1667,7 +1667,7 @@ do
 					ImageColor3 = themes.LightContrast,
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(2, 2, 298, 298),
-					CornerRadius = 2
+				CornerRadius = 6
 				}, {
 					utility:Create("ImageLabel", {
 						Name = "Fill",
@@ -1678,7 +1678,7 @@ do
 						ImageColor3 = themes.TextColor,
 						ScaleType = Enum.ScaleType.Slice,
 						SliceCenter = Rect.new(2, 2, 298, 298),
-						CornerRadius = 2
+				CornerRadius = 6
 					}, {
 						utility:Create("ImageLabel", {
 							Name = "Circle",
@@ -1690,7 +1690,7 @@ do
 							Size = UDim2.new(0, 10, 0, 10),
 							ZIndex = 3,
 							Image = "rbxassetid://4608020054",
-							NoCorner = true
+				CornerRadius = 6
 						})
 					})
 				})
@@ -1768,12 +1768,12 @@ do
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 30),
 			ClipsDescendants = true,
-			NoCorner = true
+				CornerRadius = 6
 		}, {
 			utility:Create("UIListLayout", {
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				Padding = UDim.new(0, 4),
-				NoCorner = true
+				CornerRadius = 6
 			}),
 			utility:Create("ImageLabel", {
 				Name = "Search",
@@ -1801,7 +1801,7 @@ do
 					TextSize = 12,
 					TextTransparency = 0.10000000149012,
 					TextXAlignment = Enum.TextXAlignment.Left,
-					NoCorner = true
+				CornerRadius = 6
 				}),
 				utility:Create("ImageButton", {
 					Name = "Button",
@@ -1813,7 +1813,7 @@ do
 					Image = "rbxassetid://5012539403",
 					ImageColor3 = themes.TextColor,
 					SliceCenter = Rect.new(2, 2, 298, 298),
-					NoCorner = true
+				CornerRadius = 6
 				})
 			}),
 			utility:Create("ImageLabel", {
@@ -1840,12 +1840,12 @@ do
 					ZIndex = 2,
 					ScrollBarThickness = 3,
 					ScrollBarImageColor3 = themes.DarkContrast,
-					NoCorner = true
+									CornerRadius = 6
 				}, {
 					utility:Create("UIListLayout", {
 						SortOrder = Enum.SortOrder.LayoutOrder,
 						Padding = UDim.new(0, 4),
-						NoCorner = true
+				CornerRadius = 6
 					})
 				})
 			})
@@ -2202,7 +2202,7 @@ do
 					TextSize = 12,
 					TextXAlignment = "Left",
 					TextTransparency = 0.10000000149012,
-					NoCorner = true
+				    CornerRadius = 6
 				})
 			})
 			
