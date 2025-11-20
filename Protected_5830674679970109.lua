@@ -233,6 +233,9 @@ do
 		local container = utility:Create("ScreenGui", {
 			Name = title,
 			Parent = game.CoreGui,
+			ResetOnSpawn = false,
+			DisplayOrder = 100,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			NoCorner = true
 		}, {
 			utility:Create("ImageLabel", {
@@ -244,7 +247,8 @@ do
 				ImageColor3 = themes.Background,
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(4, 4, 296, 296),
-				CornerRadius = 10
+				CornerRadius = 10,
+				ZIndex = 1
 			}, {
 				utility:Create("ImageLabel", {
 					Name = "Glow",
