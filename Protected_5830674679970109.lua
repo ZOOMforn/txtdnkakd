@@ -33,7 +33,7 @@ do
 		end
 	end
 	
-	-- ✨ FUNÇÃO CREATE MODIFICADA COM UICORNER AUTOMÁTICO ✨
+	-- ✨ FUNÇÃO CREATE MODIFICADA COM UICORNER AUTOMÁTICO (CORRIGIDA) ✨
 	function utility:Create(instance, properties, children)
 		local object = Instance.new(instance)
 		local cornerRadius = 6 -- raio padrão
@@ -60,8 +60,26 @@ do
 			end
 		end
 		
-		-- ✨ ADICIONA UICORNER AUTOMATICAMENTE ✨
-		if not noCorner and (object:IsA("ImageLabel") or object:IsA("ImageButton") or object:IsA("Frame") or object:IsA("TextButton")) then
+		-- ✨ ADICIONA UICORNER APENAS EM ELEMENTOS VISUAIS CORRETOS ✨
+		local shouldHaveCorner = (
+			object:IsA("ImageLabel") or 
+			object:IsA("ImageButton") or 
+			(object:IsA("Frame") and object.BackgroundTransparency ~= 1) or
+			object:IsA("TextButton")
+		)
+		
+		-- NÃO adicionar corner em:
+		local dontAddCorner = (
+			object:IsA("TextLabel") or
+			object:IsA("TextBox") or
+			object:IsA("ScrollingFrame") or
+			object:IsA("UIListLayout") or
+			object:IsA("UIGradient") or
+			object:IsA("ScreenGui") or
+			noCorner
+		)
+		
+		if shouldHaveCorner and not dontAddCorner then
 			local corner = Instance.new("UICorner")
 			corner.CornerRadius = UDim.new(0, cornerRadius)
 			corner.Parent = object
