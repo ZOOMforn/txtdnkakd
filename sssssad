@@ -625,37 +625,30 @@ c2:addButton("Fly", function()
 				end
 			end
 
-			local inputDir = Vector3.zero
 			local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+			local cameraCFrame = camera.CFrame
 
+			-- CORREÇÃO DEFINITIVA
 			if isMobile then
-				-- MOBILE: Usa MoveDirection diretamente (já está correto)
-				inputDir = humanoid.MoveDirection
+				-- MOBILE: Usa MoveDirection DIRETO (já está em world space correto)
+				local moveDir = humanoid.MoveDirection
+				if moveDir.Magnitude > 0 then
+					flightState.velocity = moveDir * config.forwardSpeed
+				else
+					flightState.velocity = Vector3.zero
+				end
 			else
-				-- PC: Calcula manualmente com WASD
-				inputDir = Vector3.new(
+				-- PC: Calcula baseado em WASD + câmera
+				local inputDir = Vector3.new(
 					(UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0),
 					0,
 					(UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
 				)
+				
+				local lateralMove = cameraCFrame.RightVector * inputDir.X * config.strafeSpeed
+				local forwardMove = cameraCFrame.LookVector * -inputDir.Z * config.forwardSpeed
+				flightState.velocity = lateralMove + forwardMove
 			end
-
-			local cameraCFrame = camera.CFrame
-
-			-- CORREÇÃO: Não inverte mais para mobile
-			local lateralMove, forwardMove
-			
-			if isMobile then
-				-- Mobile: usa inputDir diretamente (sem inversão)
-				lateralMove = cameraCFrame.RightVector * inputDir.X * config.strafeSpeed
-				forwardMove = cameraCFrame.LookVector * inputDir.Z * config.forwardSpeed
-			else
-				-- PC: inverte Z porque WASD é calculado ao contrário
-				lateralMove = cameraCFrame.RightVector * inputDir.X * config.strafeSpeed
-				forwardMove = cameraCFrame.LookVector * -inputDir.Z * config.forwardSpeed
-			end
-
-			flightState.velocity = lateralMove + forwardMove
 
 			local newPosition = rootPart.Position + flightState.velocity
 
