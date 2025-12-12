@@ -1019,9 +1019,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local function AutoRevistar()
     local itens = {
-        "AK47", "AR-15", "G3", "Glock 17", "Hi Power", "IA2",
-        "Lockpick", "PARAFAL", "Uzi", "Agua",
-        "Hamburguer", "Iphone 14", "Tratamento"
+            "AK47", "Planta Suja", "Planta Limpa", "Uzi", "PARAFAL", "Presente Azul",  "Presente Azul 2",
+            "Faca", "IA2", "G3", "IPhone 14", "Hi Power", "Glock 17", "Skate",
+            "Tratamento", "AR-15", "Lockpick", "Escudo", "C4", "Disruptor",
+            "Plástico Vazio", "Presente Verde", "Presente Vermelho", "Plástico Pronto"
     }
 
     local args = {
