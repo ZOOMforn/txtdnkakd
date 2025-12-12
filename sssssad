@@ -460,7 +460,6 @@ end)
 
 -- ====================
 local c2 = Combat:addSection("Player")
-
 c2:addButton("Fly", function()
 	local Players = game:GetService("Players")
 	local UserInputService = game:GetService("UserInputService")
@@ -628,26 +627,30 @@ c2:addButton("Fly", function()
 			local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 			local cameraCFrame = camera.CFrame
 
-			-- CORREÇÃO DEFINITIVA
 			if isMobile then
-				-- MOBILE: Usa MoveDirection DIRETO (já está em world space correto)
+				-- MOBILE: Voa na direção da câmera (COMPLETA, incluindo cima/baixo)
 				local moveDir = humanoid.MoveDirection
+				
 				if moveDir.Magnitude > 0 then
-					flightState.velocity = moveDir * config.forwardSpeed
+					-- Usa o LookVector da câmera (inclui inclinação vertical)
+					local cameraDirection = cameraCFrame.LookVector
+					flightState.velocity = cameraDirection * config.forwardSpeed
 				else
 					flightState.velocity = Vector3.zero
 				end
 			else
-				-- PC: Calcula baseado em WASD + câmera
+				-- PC: WASD + Space/Shift
 				local inputDir = Vector3.new(
 					(UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0),
-					0,
+					(UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
 					(UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
 				)
 				
 				local lateralMove = cameraCFrame.RightVector * inputDir.X * config.strafeSpeed
 				local forwardMove = cameraCFrame.LookVector * -inputDir.Z * config.forwardSpeed
-				flightState.velocity = lateralMove + forwardMove
+				local verticalMove = Vector3.new(0, inputDir.Y * 15, 0)
+				
+				flightState.velocity = lateralMove + forwardMove + verticalMove
 			end
 
 			local newPosition = rootPart.Position + flightState.velocity
