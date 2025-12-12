@@ -472,15 +472,14 @@ c2:addButton("Fly", function()
 
 	local config = { 
 		forwardSpeed = 20,
-		strafeSpeed = 12  -- velocidade lateral (menor)
+		strafeSpeed = 12
 	}
 	local flightState = { enabled = false, velocity = Vector3.zero }
 	local connections = {}
-	local originalCanCollide = {} -- [BasePart] = original boolean
-	local descendantConn -- connection for DescendantAdded to keep noclip on newly added parts
+	local originalCanCollide = {}
+	local descendantConn
 
 	local function clearConnections()
-		-- Antes de desconectar, restaura colisões caso tenhamos modificado
 		if next(originalCanCollide) then
 			for part, val in pairs(originalCanCollide) do
 				if part and part.Parent then
@@ -490,7 +489,6 @@ c2:addButton("Fly", function()
 			table.clear(originalCanCollide)
 		end
 
-		-- desconecta qualquer DescendantAdded conn separada
 		if descendantConn then
 			pcall(function() descendantConn:Disconnect() end)
 			descendantConn = nil
@@ -504,9 +502,8 @@ c2:addButton("Fly", function()
 		table.clear(connections)
 	end
 
-	-- URLs ou asset IDs das imagens
-	local IMAGE_OFF = "rbxassetid://133260402426588" -- imagem quando desligado
-	local IMAGE_ON = "rbxassetid://133260402426588"  -- imagem quando ligado (troque pela sua)
+	local IMAGE_OFF = "rbxassetid://133260402426588"
+	local IMAGE_ON = "rbxassetid://133260402426588"
 
 	local function createFlightButton()
 		if CoreGui:FindFirstChild("FlightToggleButton") then
@@ -521,27 +518,23 @@ c2:addButton("Fly", function()
 		local toggle = Instance.new("ImageButton")
 		toggle.Size = UDim2.new(0, 80, 0, 80)
 		toggle.Position = UDim2.new(1, -100, 1, -100)
-		toggle.BackgroundTransparency = 1  -- Totalmente transparente
+		toggle.BackgroundTransparency = 1
 		toggle.Image = IMAGE_OFF
 		toggle.ScaleType = Enum.ScaleType.Fit
 		toggle.Parent = buttonGui
-		toggle.AutoButtonColor = false  -- Desativa cor automática
+		toggle.AutoButtonColor = false
 		toggle.AnchorPoint = Vector2.new(0.5, 0.5)
 		toggle.BorderSizePixel = 0
 		toggle.ZIndex = 5
 
-		-- Ativar/desativar voo
 		toggle.MouseButton1Click:Connect(function()
 			flightState.enabled = not flightState.enabled
 			toggle.Image = flightState.enabled and IMAGE_ON or IMAGE_OFF
 			print(flightState.enabled and "[Voo ativado]" or "[Voo desativado]")
 
-			-- aplica ou remove noclip diretamente quando o usuário clica
 			local char = player.Character
 			if flightState.enabled then
-				-- enable noclip
 				if char then
-					-- will be enforced each frame in RenderStepped; ensure we immediately set parts
 					for _, part in ipairs(char:GetDescendants()) do
 						if part:IsA("BasePart") then
 							if originalCanCollide[part] == nil then
@@ -550,7 +543,6 @@ c2:addButton("Fly", function()
 							pcall(function() part.CanCollide = false end)
 						end
 					end
-					-- listen for future parts
 					if descendantConn then
 						pcall(function() descendantConn:Disconnect() end)
 						descendantConn = nil
@@ -565,7 +557,6 @@ c2:addButton("Fly", function()
 					end)
 				end
 			else
-				-- disable noclip: restaura colisões
 				for part, val in pairs(originalCanCollide) do
 					if part and part.Parent then
 						pcall(function() part.CanCollide = val end)
@@ -579,7 +570,6 @@ c2:addButton("Fly", function()
 			end
 		end)
 
-		-- Drag do botão
 		local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
 
 		toggle.InputBegan:Connect(function(input)
@@ -616,65 +606,68 @@ c2:addButton("Fly", function()
 		local rootPart = character:WaitForChild("HumanoidRootPart", 5)
 		if not humanoid or not rootPart then return end
 
-		-- Limpa conexões antigas e recria button
 		clearConnections()
 		createFlightButton()
 
 		local renderConnection = RunService.RenderStepped:Connect(function(deltaTime)
 			if not flightState.enabled or not rootPart or humanoid.Health <= 0 then
-				-- quando desativado, não precisa forçar noclip aqui (já restauramos ao desativar)
 				return
 			end
 
-			-- Enforce noclip a cada frame para evitar que outros scripts reativem colisões
-			-- (salva estado original apenas se ainda não tiver sido salvo)
 			if character then
 				for _, part in ipairs(character:GetDescendants()) do
 					if part:IsA("BasePart") then
 						if originalCanCollide[part] == nil then
 							originalCanCollide[part] = part.CanCollide
 						end
-						-- tenta sempre forçar CanCollide = false enquanto voando
 						pcall(function() part.CanCollide = false end)
 					end
 				end
 			end
 
 			local inputDir = Vector3.zero
+			local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
-			if UserInputService.TouchEnabled then
+			if isMobile then
+				-- MOBILE: Usa MoveDirection diretamente (já está correto)
 				inputDir = humanoid.MoveDirection
 			else
+				-- PC: Calcula manualmente com WASD
 				inputDir = Vector3.new(
 					(UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0),
-					0,  -- Sem movimento vertical
+					0,
 					(UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
 				)
 			end
 
 			local cameraCFrame = camera.CFrame
 
-			-- Calcula movimento com velocidades diferentes
-			local lateralMove = cameraCFrame.RightVector * inputDir.X * config.strafeSpeed
-			local forwardMove = cameraCFrame.LookVector * -inputDir.Z * config.forwardSpeed
+			-- CORREÇÃO: Não inverte mais para mobile
+			local lateralMove, forwardMove
+			
+			if isMobile then
+				-- Mobile: usa inputDir diretamente (sem inversão)
+				lateralMove = cameraCFrame.RightVector * inputDir.X * config.strafeSpeed
+				forwardMove = cameraCFrame.LookVector * inputDir.Z * config.forwardSpeed
+			else
+				-- PC: inverte Z porque WASD é calculado ao contrário
+				lateralMove = cameraCFrame.RightVector * inputDir.X * config.strafeSpeed
+				forwardMove = cameraCFrame.LookVector * -inputDir.Z * config.forwardSpeed
+			end
 
 			flightState.velocity = lateralMove + forwardMove
 
 			local newPosition = rootPart.Position + flightState.velocity
 
-			-- Se está se movendo, rotaciona o personagem na direção do movimento
 			if flightState.velocity.Magnitude > 0.1 then
 				local horizontalVelocity = Vector3.new(flightState.velocity.X, 0, flightState.velocity.Z)
 				if horizontalVelocity.Magnitude > 0.1 then
-					-- Rotaciona suavemente na direção do movimento
 					local targetCFrame = CFrame.new(newPosition, newPosition + horizontalVelocity)
 					rootPart.CFrame = rootPart.CFrame:Lerp(targetCFrame, 0.2)
 				else
-					-- Se só está subindo/descendo, mantém a rotação da câmera
 					rootPart.CFrame = CFrame.new(newPosition, newPosition + cameraCFrame.LookVector)
 				end
 			else
-				-- Parado, mantém rotação da câmera
 				rootPart.CFrame = CFrame.new(newPosition, newPosition + cameraCFrame.LookVector)
 			end
 
@@ -683,10 +676,8 @@ c2:addButton("Fly", function()
 		end)
 
 		local diedConnection = humanoid.Died:Connect(function()
-			-- Ao morrer, desativa voo e restaura colisões
 			flightState.enabled = false
 
-			-- restaura colisões antes de limpar conexões
 			if next(originalCanCollide) then
 				for part, val in pairs(originalCanCollide) do
 					if part and part.Parent then
