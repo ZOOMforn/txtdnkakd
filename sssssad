@@ -188,104 +188,273 @@ end)
 local Combat = skycommunity:addPage("Combat", 4391741881)
 local c1 = Combat:addSection("Combat")
 
--- Variáveis Aimlock PC
-local aimPCActive = false
-local aimPartName = "Head" -- parte que mira
-local aimSmoothness = 1 -- suavidade do aim
+-- AIMBOT MELHORADO COM FOV E CONFIGURAÇÕES AVANÇADAS
 
--- Função para achar o player mais próximo
-local function getClosestPlayer()
-    local closestDist = math.huge
-    local closestPlayer = nil
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return nil end
-    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
 
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild(aimPartName) then
-            local dist = (plr.Character[aimPartName].Position - myPos).Magnitude
-            if dist < closestDist then
-                closestDist = dist
-                closestPlayer = plr
-            end
-        end
-    end
+-- Configurações do Aimbot
+local AimbotSettings = {
+    Enabled = false,
+    MobileMode = false,
+    TargetPart = "Head",
+    Smoothness = 5,
+    FOV = 200,
+    ShowFOV = false,
+    WallCheck = true,
+    TeamCheck = true,
+    PrioritizeClosest = true,
+    MaxDistance = 1000,
+    StickyTarget = true,
+    StickyDuration = 2
+}
 
-    return closestPlayer
+local CurrentTarget = nil
+local TargetLockTime = 0
+local FOVCircle = nil
+
+-- Criar círculo FOV
+local function createFOVCircle()
+    if not Drawing then return end
+    
+    FOVCircle = Drawing.new("Circle")
+    FOVCircle.Thickness = 2
+    FOVCircle.NumSides = 50
+    FOVCircle.Radius = AimbotSettings.FOV
+    FOVCircle.Filled = false
+    FOVCircle.Transparency = 0.5
+    FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+    FOVCircle.Visible = AimbotSettings.ShowFOV
 end
 
--- Toggle Aimbot PC
-c1:addToggle("Aimlock PC", false, function(value)
-    aimPCActive = value
-end)
-
--- Loop de Aimlock
-RunService.RenderStepped:Connect(function()
-    if aimPCActive and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local target = getClosestPlayer()
-        if target and target.Character and target.Character:FindFirstChild(aimPartName) then
-            local cam = workspace.CurrentCamera
-            local targetPos = target.Character[aimPartName].Position
-
-            if aimSmoothness > 1 then
-                local currentLook = cam.CFrame.LookVector
-                local targetLook = (targetPos - cam.CFrame.Position).Unit
-                local newLook = currentLook:Lerp(targetLook, 1 / aimSmoothness)
-                cam.CFrame = CFrame.new(cam.CFrame.Position, cam.CFrame.Position + newLook)
-            else
-                cam.CFrame = CFrame.new(cam.CFrame.Position, targetPos)
-            end
-        end
+-- Atualizar posição do círculo FOV
+local function updateFOVCircle()
+    if FOVCircle and AimbotSettings.ShowFOV then
+        FOVCircle.Position = Vector2.new(
+            Camera.ViewportSize.X / 2,
+            Camera.ViewportSize.Y / 2
+        )
+        FOVCircle.Radius = AimbotSettings.FOV
+        FOVCircle.Visible = true
+    elseif FOVCircle then
+        FOVCircle.Visible = false
     end
-end)
-
--- Variáveis Aimlock MOBA
-local aimMobileActive = false
-local aimPartName = "Head" -- parte que mira
-local aimSmoothness = 1 -- suavidade do aim
-
--- Função para achar o player mais próximo
-local function getClosestPlayer()
-    local closestDist = math.huge
-    local closestPlayer = nil
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return nil end
-    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
-
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild(aimPartName) then
-            local dist = (plr.Character[aimPartName].Position - myPos).Magnitude
-            if dist < closestDist then
-                closestDist = dist
-                closestPlayer = plr
-            end
-        end
-    end
-
-    return closestPlayer
 end
 
--- Toggle aimlock moba
-c1:addToggle("Aimlock Mobile", false, function(value)
-    aimMobileActive = value
-end)
+-- Verificar se o alvo está atrás de uma parede
+local function isVisible(targetPart)
+    if not AimbotSettings.WallCheck then return true end
+    if not LocalPlayer.Character then return false end
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin).Unit * 
+                     (targetPart.Position - origin).Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {
+        LocalPlayer.Character,
+        targetPart.Parent
+    }
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.IgnoreWater = true
+    
+    local result = Workspace:Raycast(origin, direction, raycastParams)
+    
+    return result == nil or result.Instance:IsDescendantOf(targetPart.Parent)
+end
 
--- Loop de Aimlock Mobile
-RunService.RenderStepped:Connect(function()
-    if aimMobileActive then
-        local target = getClosestPlayer()
-        if target and target.Character and target.Character:FindFirstChild(aimPartName) then
-            local cam = workspace.CurrentCamera
-            local targetPos = target.Character[aimPartName].Position
+-- Calcular distância da tela (para FOV)
+local function getScreenDistance(position)
+    local screenPos, onScreen = Camera:WorldToViewportPoint(position)
+    if not onScreen then return math.huge end
+    
+    local screenCenter = Vector2.new(
+        Camera.ViewportSize.X / 2,
+        Camera.ViewportSize.Y / 2
+    )
+    local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
+    
+    return (screenPoint - screenCenter).Magnitude
+end
 
-            if aimSmoothness > 1 then
-                local currentLook = cam.CFrame.LookVector
-                local targetLook = (targetPos - cam.CFrame.Position).Unit
-                local newLook = currentLook:Lerp(targetLook, 1 / aimSmoothness)
-                cam.CFrame = CFrame.new(cam.CFrame.Position, cam.CFrame.Position + newLook)
-            else
-                cam.CFrame = CFrame.new(cam.CFrame.Position, targetPos)
+-- Encontrar o melhor alvo
+local function getBestTarget()
+    if not LocalPlayer.Character then return nil end
+    local myRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+    
+    -- Se StickyTarget estiver ativo e ainda temos um alvo válido
+    if AimbotSettings.StickyTarget and CurrentTarget then
+        local timeSinceLock = tick() - TargetLockTime
+        if timeSinceLock < AimbotSettings.StickyDuration then
+            local char = CurrentTarget.Character
+            if char and char:FindFirstChild(AimbotSettings.TargetPart) then
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local targetPart = char[AimbotSettings.TargetPart]
+                    local distance = (targetPart.Position - myRoot.Position).Magnitude
+                    local screenDist = getScreenDistance(targetPart.Position)
+                    
+                    if distance <= AimbotSettings.MaxDistance and 
+                       screenDist <= AimbotSettings.FOV and
+                       isVisible(targetPart) then
+                        return CurrentTarget
+                    end
+                end
             end
         end
     end
+    
+    -- Procurar novo alvo
+    local bestTarget = nil
+    local bestValue = math.huge
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            -- Verificar time
+            if AimbotSettings.TeamCheck and player.Team == LocalPlayer.Team then
+                continue
+            end
+            
+            local char = player.Character
+            if char and char:FindFirstChild(AimbotSettings.TargetPart) then
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local targetPart = char[AimbotSettings.TargetPart]
+                    
+                    -- Verificar distância 3D
+                    local distance = (targetPart.Position - myRoot.Position).Magnitude
+                    if distance > AimbotSettings.MaxDistance then continue end
+                    
+                    -- Verificar FOV (distância na tela)
+                    local screenDist = getScreenDistance(targetPart.Position)
+                    if screenDist > AimbotSettings.FOV then continue end
+                    
+                    -- Verificar visibilidade
+                    if not isVisible(targetPart) then continue end
+                    
+                    -- Calcular prioridade
+                    local priority = AimbotSettings.PrioritizeClosest 
+                                    and screenDist 
+                                    or distance
+                    
+                    if priority < bestValue then
+                        bestValue = priority
+                        bestTarget = player
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Atualizar CurrentTarget e tempo
+    if bestTarget and bestTarget ~= CurrentTarget then
+        CurrentTarget = bestTarget
+        TargetLockTime = tick()
+    end
+    
+    return bestTarget
+end
+
+-- Função principal de Aim
+local function performAim()
+    local target = getBestTarget()
+    if not target or not target.Character then return end
+    
+    local targetPart = target.Character:FindFirstChild(AimbotSettings.TargetPart)
+    if not targetPart then return end
+    
+    local targetPos = targetPart.Position
+    
+    -- Predição de movimento (básica)
+    local targetVelocity = targetPart.AssemblyLinearVelocity
+    if targetVelocity.Magnitude > 1 then
+        local distance = (targetPos - Camera.CFrame.Position).Magnitude
+        local timeToReach = distance / 500
+        targetPos = targetPos + (targetVelocity * timeToReach)
+    end
+    
+    -- Aplicar smoothness
+    local currentLook = Camera.CFrame.LookVector
+    local targetLook = (targetPos - Camera.CFrame.Position).Unit
+    
+    local smoothFactor = 1 / math.max(AimbotSettings.Smoothness, 1)
+    local newLook = currentLook:Lerp(targetLook, smoothFactor)
+    
+    Camera.CFrame = CFrame.new(Camera.CFrame.Position, 
+                               Camera.CFrame.Position + newLook)
+end
+
+-- Loop principal do aimbot
+RunService.RenderStepped:Connect(function()
+    updateFOVCircle()
+    
+    if not AimbotSettings.Enabled then return end
+    
+    if not AimbotSettings.MobileMode then
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            performAim()
+        else
+            CurrentTarget = nil
+        end
+    else
+        performAim()
+    end
+end)
+
+-- Criar círculo FOV ao iniciar
+createFOVCircle()
+
+-- Interface
+c1:addToggle("Aimbot Avançado", false, function(value)
+    AimbotSettings.Enabled = value
+    if not value then
+        CurrentTarget = nil
+    end
+end)
+
+c1:addToggle("Modo Mobile", false, function(value)
+    AimbotSettings.MobileMode = value
+end)
+
+c1:addToggle("Mostrar FOV", false, function(value)
+    AimbotSettings.ShowFOV = value
+    if FOVCircle then
+        FOVCircle.Visible = value
+    end
+end)
+
+c1:addToggle("Verificar Paredes", true, function(value)
+    AimbotSettings.WallCheck = value
+end)
+
+c1:addToggle("Ignorar Aliados", true, function(value)
+    AimbotSettings.TeamCheck = value
+end)
+
+c1:addToggle("Manter Alvo", true, function(value)
+    AimbotSettings.StickyTarget = value
+end)
+
+c1:addSlider("Suavidade", 5, 1, 20, function(value)
+    AimbotSettings.Smoothness = value
+end)
+
+c1:addSlider("FOV (Pixels)", 200, 50, 500, function(value)
+    AimbotSettings.FOV = value
+end)
+
+c1:addSlider("Distância Máxima", 1000, 100, 3000, function(value)
+    AimbotSettings.MaxDistance = value
+end)
+
+local bodyParts = {"Head", "Torso", "UpperTorso", "HumanoidRootPart"}
+c1:addDropdown("Mirar em", bodyParts, function(selected)
+    AimbotSettings.TargetPart = selected
 end)
 
 
